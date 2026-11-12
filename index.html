@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>외부효과와 교정정책 | 경제학 인터랙티브 교과서</title>
+<style>
+:root{font-family:system-ui,"Noto Sans KR",sans-serif;color:#202631;background:#fff}*{box-sizing:border-box}body{margin:0;padding:20px}main{max-width:900px;margin:auto}h1{font-size:1.4rem;margin:0 0 8px}p{line-height:1.6;color:#505967}.panel{border:1px solid #dfe4ea;border-radius:16px;padding:18px;margin:14px 0}.controls{display:grid;grid-template-columns:1fr 1fr;gap:16px}.buttons{display:flex;gap:8px;flex-wrap:wrap}button{padding:10px 14px;border-radius:9px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font:inherit}button.active,button.primary{background:#175cd3;color:white;border-color:#175cd3}label{display:block;font-weight:600;margin-bottom:8px}input{width:100%;accent-color:#175cd3}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat{background:#f4f6f9;padding:12px;border-radius:10px}.stat small{display:block;color:#596475}.stat strong{font-size:1.4rem}svg{width:100%;height:auto;display:block}.legend{display:flex;gap:15px;flex-wrap:wrap;font-size:.84rem}.swatch{display:inline-block;width:18px;height:4px;vertical-align:middle;margin-right:5px}.note{font-size:.85rem}@media(max-width:650px){.controls,.stats{grid-template-columns:1fr 1fr}body{padding:10px}}@media(max-width:420px){.stats{grid-template-columns:1fr}}
+</style></head><body><main>
+<h1>외부효과와 교정정책 시뮬레이터</h1>
+<p>외부효과의 유형과 크기, 교정세·보조금을 바꾸면서 시장균형, 사회적 최적 생산량, 후생손실의 변화를 관찰해 보세요.</p>
+<div class="panel">
+<div class="buttons"><button id="negative" class="active">부정적 외부효과</button><button id="positive">긍정적 외부효과</button></div>
+<svg id="chart" viewBox="0 0 820 440" role="img" aria-label="외부효과와 교정정책의 한계비용 및 한계편익 그래프"></svg>
+<div class="legend"><span><i class="swatch" style="background:#1686ee"></i>사적 한계편익(MPB)</span><span><i class="swatch" style="background:#16a34a"></i>사적 한계비용(MPC)</span><span><i class="swatch" style="background:#9254de"></i><span id="social-label">사회적 한계비용(MSC)</span></span><span><i class="swatch" style="background:#656565"></i><span id="policy-label">과세 후 비용</span></span></div>
+</div>
+<div class="panel controls"><div><label for="external">한계외부피해·편익: <output id="external-val">18</output></label><input id="external" type="range" min="0" max="36" value="18"></div><div><label for="policy">교정세·보조금: <output id="policy-val">5</output></label><input id="policy" type="range" min="0" max="36" value="5"><button class="primary" id="optimal">최적 정책 적용</button></div></div>
+<div class="stats"><div class="stat"><small>시장균형 Qm</small><strong id="qm"></strong></div><div class="stat"><small>사회적 최적 Q*</small><strong id="qs"></strong></div><div class="stat"><small>정책 적용 Q</small><strong id="qp"></strong></div><div class="stat"><small>잔여 후생손실</small><strong id="dwl"></strong></div></div>
+<p id="explain"></p><p class="note">교육용 선형 모형: MPB=82−0.7Q, MPC=18+0.5Q. 한계외부효과는 일정하다고 가정합니다. 후생손실은 총잉여의 차이이며 세수·보조금 지급액 자체를 손실로 간주하지 않습니다.</p>
+</main>
+<script>
+const $=id=>document.getElementById(id);let negative=true;
+const mpb=q=>82-.7*q,mpc=q=>18+.5*q;
+const NS='http://www.w3.org/2000/svg', svg=$('chart');
+function node(tag,attrs={},text=''){let el=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v));if(text)el.textContent=text;svg.append(el);return el}
+function draw(){
+const e=+$('external').value,t=+$('policy').value,qm=64/1.2,qs=(64+(negative?-e:e))/1.2,qp=(64+(negative?-t:t))/1.2;
+$('external-val').textContent=e;$('policy-val').textContent=t;
+$('qm').textContent=qm.toFixed(1);$('qs').textContent=qs.toFixed(1);$('qp').textContent=qp.toFixed(1);$('dwl').textContent=(.6*(qp-qs)**2).toFixed(1);
+$('negative').classList.toggle('active',negative);$('positive').classList.toggle('active',!negative);
+$('social-label').textContent=negative?'사회적 한계비용(MSC)':'사회적 한계편익(MSB)';
+$('policy-label').textContent=negative?'과세 후 비용':'보조금 반영 편익';
+$('explain').textContent=Math.abs(qp-qs)<.001?'교정정책이 외부효과를 정확히 내부화하여 사회적 최적 생산량에 도달했습니다.':negative?'교정세가 외부 한계피해보다 '+(t<e?'작아 여전히 과잉생산됩니다.':'커서 사회적 최적보다 적게 생산됩니다.'):'교정보조금이 외부 한계편익보다 '+(t<e?'작아 여전히 과소생산됩니다.':'커서 사회적 최적보다 많이 생산됩니다.');
+svg.replaceChildren();const X=q=>65+q*7.7,Y=y=>390-y*3.6;
+for(let v=0;v<=100;v+=20){node('line',{x1:65,y1:Y(v),x2:780,y2:Y(v),stroke:'#e5e7eb'});node('text',{x:55,y:Y(v)+4,'text-anchor':'end',fill:'#697386','font-size':13},String(v))}
+for(let q=0;q<=90;q+=15){node('text',{x:X(q),y:414,'text-anchor':'middle',fill:'#697386','font-size':13},String(q))}
+node('line',{x1:65,y1:30,x2:65,y2:390,stroke:'#444','stroke-width':1.5});node('line',{x1:65,y1:390,x2:780,y2:390,stroke:'#444','stroke-width':1.5});
+node('text',{x:65,y:22,fill:'#333','font-size':15},'가격 / 비용 / 편익');node('text',{x:780,y:435,'text-anchor':'end',fill:'#333','font-size':15},'생산량 Q');
+function line(fn,color,dash=''){node('line',{x1:X(0),y1:Y(fn(0)),x2:X(90),y2:Y(fn(90)),stroke:color,'stroke-width':3,'stroke-dasharray':dash})}
+line(mpb,'#1686ee');line(mpc,'#16a34a');line(negative?q=>mpc(q)+e:q=>mpb(q)+e,'#9254de','8 6');line(negative?q=>mpc(q)+t:q=>mpb(q)+t,'#656565');
+for(const [q,color] of [[qs,'#9254de'],[qp,'#656565']]){let y=negative?mpb(q):mpc(q);node('line',{x1:X(q),y1:Y(y),x2:X(q),y2:390,stroke:color,'stroke-dasharray':'5 5'});node('circle',{cx:X(q),cy:Y(y),r:6,fill:color,stroke:'#fff','stroke-width':2})}
+}
+$('negative').onclick=()=>{negative=true;draw()};$('positive').onclick=()=>{negative=false;draw()};$('external').oninput=draw;$('policy').oninput=draw;$('optimal').onclick=()=>{$('policy').value=$('external').value;draw()};draw();
+</script></body></html>
