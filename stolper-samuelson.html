@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>스톨퍼–새뮤얼슨 정리 | 경제학 인터랙티브 교과서</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;color:#1e293b;background:#f6f8fc;font-synthesis:none}
+*{box-sizing:border-box}body{margin:0;padding:25px 14px}main{max-width:1080px;margin:0 auto}.eyebrow{font-size:.78rem;letter-spacing:.12em;font-weight:800;color:#526582}h1{font-size:clamp(1.6rem,3.8vw,2.3rem);letter-spacing:-.045em;margin:8px 0}p{line-height:1.65;color:#526175}p.intro{max-width:790px;margin:9px 0 22px}h2{font-size:1.05rem;margin:0 0 14px}.layout{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}.card{background:#fff;border:1px solid #dbe3ee;border-radius:18px;padding:21px}.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:.84rem;margin-bottom:8px}.legend span{display:inline-flex;align-items:center;gap:7px}.sw{display:inline-block;width:24px;height:4px;border-radius:3px}.w{color:#245bd0}.r{color:#bd612f}svg{display:block;width:100%;height:auto}.hint{font-size:.83rem;color:#64748b}.control label{font-weight:700;display:block;margin:15px 0 8px}.range-row{display:flex;align-items:center;justify-content:space-between;gap:10px}.range-row output{font-size:1.8rem;font-weight:800;color:#1e293b;font-variant-numeric:tabular-nums}input[type=range]{width:100%;accent-color:#245bd0;cursor:pointer;height:34px}.extremes{display:flex;justify-content:space-between;color:#64748b;font-size:.77rem}.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}.metric{padding:14px;border-radius:12px;background:#f5f8fc}.metric strong{display:block;font-size:1.65rem;font-variant-numeric:tabular-nums}.metric small{display:block;color:#64748b}.metric .delta{font-size:.84rem;font-weight:700}.up{color:#18835a}.down{color:#b45332}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.real{margin-top:16px}.real .metric strong{font-size:1.2rem}.real .metric{background:white;border:1px solid #dbe3ee}.explain{margin-top:16px;background:#152c50;color:white}.explain h2{color:#dbeafe}.explain p{color:#dbeafe;margin-bottom:0}.formula{font-size:.88rem;color:#526175;margin:11px 0 0}button{border:1px solid #b7c5d9;border-radius:9px;padding:10px 14px;background:white;color:#284363;font:inherit;font-size:.86rem;cursor:pointer}button:hover{background:#eff5ff}button:focus-visible,input:focus-visible{outline:3px solid #8bb3ff;outline-offset:3px}button{margin-top:17px}@media(max-width:760px){body{padding:15px 10px}.layout{grid-template-columns:1fr}.card{padding:18px}.grid4{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body><main>
+<div class="eyebrow">ECONOMICS LAB · INTERNATIONAL TRADE · 03</div>
+<h1>재화가격이 오르면 누가 이익을 얻을까?</h1>
+<p class="intro">스톨퍼–새뮤얼슨 정리 실험. 노동집약재 X의 가격을 조절하면 임금과 자본보수, 그리고 두 재화로 측정한 실질구매력이 함께 변합니다.</p>
+<div class="layout">
+<section class="card" aria-labelledby="graph-heading">
+<h2 id="graph-heading">X재 가격 변화와 요소보수</h2>
+<div class="legend"><span class="w"><i class="sw" style="background:#245bd0"></i>노동 임금 (w)</span><span class="r"><i class="sw" style="background:#bd612f"></i>자본보수 (r)</span></div>
+<svg id="chart" viewBox="0 0 600 425" role="img" aria-labelledby="chart-title chart-desc">
+<title id="chart-title">X재 가격에 따른 임금과 자본보수</title>
+<desc id="chart-desc">가로축은 X재 가격, 세로축은 명목 요소보수. 노동 임금은 우상향하고 자본보수는 우하향합니다.</desc>
+<g id="grid"></g><g id="curves"></g><g id="marker"></g>
+</svg>
+<p class="hint">가로축: X재 가격 Pₓ · 세로축: 요소보수 (Y재 가격 Pᵧ = 3 고정)</p>
+</section>
+<section class="card control" aria-labelledby="control-heading">
+<h2 id="control-heading">상대가격 조정</h2>
+<label for="px">노동집약재 X의 가격</label>
+<div class="range-row"><span class="hint">기준 Pₓ = 3.0</span><output id="px-out" for="px">3.3</output></div>
+<input id="px" type="range" min="2.4" max="4.2" value="3.3" step="0.1" aria-label="X재 가격">
+<div class="extremes"><span>2.4</span><span>4.2</span></div>
+<div class="metrics" aria-live="polite">
+<div class="metric"><small>명목임금 w</small><strong id="w">1.20</strong><span class="delta" id="dw">+20.0%</span></div>
+<div class="metric"><small>자본보수 r</small><strong id="r">0.90</strong><span class="delta" id="dr">−10.0%</span></div>
+</div>
+<p class="formula">0이윤 조건: Pₓ = 2w + r, &nbsp; Pᵧ = w + 2r</p>
+<p class="formula">w = (2Pₓ − 3) / 3 &nbsp;·&nbsp; r = (6 − Pₓ) / 3</p>
+<button type="button" id="reset">기본 예시(3.3)로 되돌리기</button>
+</section>
+</div>
+<section class="real" aria-labelledby="real-heading"><h2 id="real-heading">실질구매력: 두 재화 가격으로 각각 나누어 보세요</h2>
+<div class="grid4" aria-live="polite">
+<div class="metric"><small>임금 / X재 가격</small><strong id="wx">0.364</strong><span class="delta" id="dwx"></span></div>
+<div class="metric"><small>임금 / Y재 가격</small><strong id="wy">0.400</strong><span class="delta" id="dwy"></span></div>
+<div class="metric"><small>자본보수 / X재 가격</small><strong id="rx">0.273</strong><span class="delta" id="drx"></span></div>
+<div class="metric"><small>자본보수 / Y재 가격</small><strong id="ry">0.300</strong><span class="delta" id="dry"></span></div>
+</div></section>
+<section class="card explain"><h2>경제학적 해석</h2><p id="interpret">노동집약재의 상대가격이 오르면 노동의 실질구매력이 증가하고 자본의 실질구매력은 하락합니다.</p></section>
+<p class="hint">모형: 2재화·2요소, 완전경쟁, 두 산업의 동시 생산. 고정투입계수 기술의 수치 예시이며 실제 경제의 예측값이 아닙니다. X재 가격 2.4~4.2 구간은 두 요소보수가 양수인 구간입니다.</p>
+</main>
+<script>
+(function(){
+"use strict";
+var range=document.getElementById("px"), svgNS="http://www.w3.org/2000/svg";
+var grid=document.getElementById("grid"),curves=document.getElementById("curves"),marker=document.getElementById("marker");
+var left=62,right=568,top=34,bottom=363, xmin=2.4,xmax=4.2,ymin=0,ymax=2.1;
+function sx(x){return left+(x-xmin)/(xmax-xmin)*(right-left)}
+function sy(y){return bottom-(y-ymin)/(ymax-ymin)*(bottom-top)}
+function el(tag,attrs,parent,txt){var e=document.createElementNS(svgNS,tag);Object.keys(attrs).forEach(function(k){e.setAttribute(k,attrs[k])});if(txt!==undefined)e.textContent=txt;parent.appendChild(e);return e}
+function line(x1,y1,x2,y2,color,width,dash,parent){var attrs={x1:x1,y1:y1,x2:x2,y2:y2,stroke:color,"stroke-width":width};if(dash)attrs["stroke-dasharray"]=dash;return el("line",attrs,parent)}
+[0,.5,1,1.5,2].forEach(function(v){line(left,sy(v),right,sy(v),"#e6ecf4",1,null,grid);el("text",{x:left-10,y:sy(v)+5,"text-anchor":"end","font-size":13,fill:"#66748b"},grid,String(v.toFixed(1)))});
+[2.4,2.7,3,3.3,3.6,3.9,4.2].forEach(function(v){line(sx(v),top,sx(v),bottom,"#eff2f7",1,null,grid);el("text",{x:sx(v),y:bottom+22,"text-anchor":"middle","font-size":13,fill:"#66748b"},grid,v.toFixed(1))});
+line(left,top,left,bottom,"#7a8ca8",1.5,null,grid);line(left,bottom,right,bottom,"#7a8ca8",1.5,null,grid);
+line(sx(3),top,sx(3),bottom,"#aabbd0",1.3,"5 5",grid);
+var wPath="",rPath="";
+for(var i=0;i<=90;i++){var px=xmin+(xmax-xmin)*i/90;wPath+=(i?"L":"M")+sx(px).toFixed(2)+","+sy((2*px-3)/3).toFixed(2);rPath+=(i?"L":"M")+sx(px).toFixed(2)+","+sy((6-px)/3).toFixed(2)}
+el("path",{d:wPath,fill:"none",stroke:"#245bd0","stroke-width":3.5,"stroke-linecap":"round"},curves);
+el("path",{d:rPath,fill:"none",stroke:"#bd612f","stroke-width":3.5,"stroke-linecap":"round"},curves);
+function pct(v){return (v>=0?"+":"−")+Math.abs(v*100).toFixed(1)+"%"}
+function setDelta(id,v){var e=document.getElementById(id);e.textContent=pct(v);e.className="delta "+(Math.abs(v)<.00001?"":v>0?"up":"down")}
+function render(){var p=Number(range.value),w=(2*p-3)/3,r=(6-p)/3;
+document.getElementById("px-out").textContent=p.toFixed(1);
+document.getElementById("w").textContent=w.toFixed(2);document.getElementById("r").textContent=r.toFixed(2);
+setDelta("dw",w-1);setDelta("dr",r-1);
+document.getElementById("wx").textContent=(w/p).toFixed(3);
+document.getElementById("wy").textContent=(w/3).toFixed(3);
+document.getElementById("rx").textContent=(r/p).toFixed(3);
+document.getElementById("ry").textContent=(r/3).toFixed(3);
+var base=1/3;setDelta("dwx",w/p/base-1);setDelta("dwy",w/3/base-1);setDelta("drx",r/p/base-1);setDelta("dry",r/3/base-1);
+marker.replaceChildren();line(sx(p),top,sx(p),bottom,"#64748b",1.5,"5 5",marker);
+el("circle",{cx:sx(p),cy:sy(w),r:7,fill:"#245bd0",stroke:"#fff","stroke-width":2.5},marker);
+el("circle",{cx:sx(p),cy:sy(r),r:7,fill:"#bd612f",stroke:"#fff","stroke-width":2.5},marker);
+var msg=p>3.0001?"X재 상대가격 상승 → 노동의 실질구매력 상승, 자본의 실질구매력 하락.":p<2.9999?"X재 상대가격 하락 → 노동의 실질구매력 하락, 자본의 실질구매력 상승.":"기준가격: 요소보수와 각 재화 구매력에 변화가 없습니다.";
+document.getElementById("interpret").textContent=msg+" 두 재화 가격으로 각각 나누어 실질효과를 확인하세요.";
+}
+range.addEventListener("input",render);document.getElementById("reset").addEventListener("click",function(){range.value="3.3";render()});render();
+})();
+</script>
+</body></html>
