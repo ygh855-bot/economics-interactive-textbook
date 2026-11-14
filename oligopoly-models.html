@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>과점시장 인터랙티브 그래프 · 꾸르노·베르트랑·슈타켈베르크·담합</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;background:#f7f9fc;color:#18263b;font-synthesis:none}*{box-sizing:border-box}body{margin:0;padding:20px}main{max-width:980px;margin:0 auto}h1{font-size:clamp(1.35rem,2.8vw,1.8rem);letter-spacing:-.04em;margin:8px 0}h2{font-size:1.07rem;margin:0 0 14px}p{font-size:.9rem;color:#48566b;line-height:1.7}.eyebrow{font-size:.76rem;color:#57719c;letter-spacing:.1em;font-weight:700}.nav{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.nav button,.actions button{border:1px solid #c8d3e1;color:#294465;background:#fff;padding:9px 12px;cursor:pointer;border-radius:10px;font:inherit;font-size:.88rem}.nav button.active,.actions button.active{background:#2158b4;color:#fff;border-color:#2158b4}button:focus-visible,input:focus-visible{outline:3px solid #84aef8;outline-offset:2px}.card{border:1px solid #e0e5ed;background:#fff;border-radius:16px;padding:17px;margin:12px 0}.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.mainChart{width:100%;height:auto;display:block}.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.82rem;margin-top:8px;color:#43536b}.key{width:15px;height:4px;display:inline-block;vertical-align:middle;margin-right:5px}.statGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat{background:#eef3fa;border-radius:11px;padding:12px}.stat small{display:block;color:#51647a;font-size:.78rem}.stat b{font-size:1.33rem;letter-spacing:-.03em}.control label{display:flex;justify-content:space-between;gap:10px;font-size:.84rem;font-weight:650}.control input{width:100%;margin-top:8px;accent-color:#2158b4}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.minor{font-size:.81rem;color:#586879}.graphWrap{min-height:220px}.subnote{border-left:3px solid #9fb8dc;padding-left:12px;margin-top:10px}.hidden{display:none!important}@media(max-width:620px){body{padding:10px}.card{padding:12px}.controls,.statGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.stat b{font-size:1.12rem}}@media(max-width:360px){.controls{grid-template-columns:1fr}}
+</style></head><body><main>
+<div class="eyebrow">ECONOMICS LAB · MICROECONOMICS</div>
+<h1 id="heading">과점시장의 전략적 선택</h1>
+<p id="intro">반응함수, 가격경쟁, 선도자 우위, 담합의 후생효과를 함께 비교합니다.</p>
+<div class="nav" role="group" aria-label="그래프 주제">
+<button type="button" data-view="cournot">꾸르노</button><button type="button" data-view="bertrand">베르트랑</button>
+<button type="button" data-view="stackelberg">슈타켈베르크</button><button type="button" data-view="collusion">담합·후생</button>
+</div>
+<section class="card controls" aria-label="공통 모형 설정">
+<div class="control"><label for="cost">공통 한계비용 MC <output id="cost-val">20</output></label><input id="cost" type="range" min="5" max="65" step="1" value="20"></div>
+<div><b style="font-size:.83rem">공통 수요모형</b><p style="margin:5px 0">P = 100 − Q, &nbsp; Cᵢ(qᵢ)=MC × qᵢ</p><p class="minor" style="margin:4px 0">두 기업 · 동일 한계비용 · 고정비용 없음</p></div>
+</section>
+<section class="card"><h2 id="graph-title"></h2><div class="graphWrap"><svg class="mainChart" id="chart" viewBox="0 0 800 410" role="img" aria-label="과점시장 인터랙티브 경제 그래프"></svg></div><div class="legend" id="legend"></div></section>
+<section class="card" id="scenario"></section>
+<div class="statGrid" id="stats" aria-live="polite"></div>
+<p class="subnote minor" id="note"></p>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id), NS='http://www.w3.org/2000/svg';
+const fmt=n=>Number(n.toFixed(2)).toLocaleString('ko-KR',{maximumFractionDigits:2});
+const palette={blue:'#2858bd',orange:'#d2781d',green:'#17936d',red:'#c43e48',purple:'#815bb2',gray:'#78869b'};
+let view=new URLSearchParams(window.location.search).get('view')||'stackelberg';
+if(!['cournot','bertrand','stackelberg','collusion'].includes(view))view='stackelberg';
+let c=20,leaderOutput=40,p1=30,p2=30,market='collusion',deviate=false,deviateQ=30;
+function model(){const d=100-c;return {d,cm:c,pc:{Q:d,P:c},cartel:{Q:d/2,P:(100+c)/2,q1:d/4,q2:d/4},cournot:{Q:2*d/3,P:c+d/3,q1:d/3,q2:d/3},stackelberg:{Q:3*d/4,P:c+d/4,q1:d/2,q2:d/4}}}
+function svgNode(tag,attrs,txt,root){const n=document.createElementNS(NS,tag);Object.entries(attrs||{}).forEach(([k,v])=>n.setAttribute(k,String(v)));if(txt!==undefined)n.textContent=txt;(root||$('chart')).appendChild(n);return n}
+function svgText(x,y,txt,attrs){return svgNode('text',Object.assign({x,y,fill:'#495970','font-size':13},attrs||{}),txt)}
+function basicAxes(xmax,ymax,xlabel,ylabel){const X=x=>68+690*x/xmax,Y=y=>355-305*y/ymax;
+ for(let i=0;i<=5;i++){const xx=xmax*i/5,yy=ymax*i/5;svgNode('line',{x1:68,y1:Y(yy),x2:760,y2:Y(yy),stroke:'#e9edf3'});svgText(56,Y(yy)+5,fmt(yy),{'text-anchor':'end','font-size':12});svgText(X(xx),376,fmt(xx),{'text-anchor':'middle','font-size':12})}
+ svgNode('path',{d:'M68 36V355H760',fill:'none',stroke:'#57657a','stroke-width':1.5});svgText(68,23,ylabel,{'font-weight':650});svgText(755,400,xlabel,{'text-anchor':'end','font-weight':650});
+ return {X,Y}}
+function plotSegment(x1,y1,x2,y2,color,width=3,dash=''){const a={x1,y1,x2,y2,stroke:color,'stroke-width':width};if(dash)a['stroke-dasharray']=dash;svgNode('line',a)}
+function plotDot(x,y,color,label){svgNode('circle',{cx:x,cy:y,r:6,fill:color,stroke:'#fff','stroke-width':2});if(label)svgText(x+10,y-9,label,{'font-weight':700,fill:color,'font-size':13})}
+function renderStats(arr){$('stats').innerHTML=arr.map(o=>'<div class="stat"><small>'+o[0]+'</small><b>'+fmt(o[1])+'</b></div>').join('')}
+function setLegend(arr){$('legend').innerHTML=arr.map(o=>'<span><i class="key" style="background:'+o[1]+'"></i>'+o[0]+'</span>').join('')}
+function setText(title,intro,graphTitle,note){$('heading').textContent=title;$('intro').textContent=intro;$('graph-title').textContent=graphTitle;$('note').textContent=note}
+function sliderHTML(id,label,min,max,step,value){return '<div class="control"><label for="'+id+'">'+label+' <output id="'+id+'-value">'+fmt(value)+'</output></label><input id="'+id+'" type="range" min="'+min+'" max="'+max+'" step="'+step+'" value="'+value+'"></div>'}
+function buttonHTML(id,txt,active){return '<button type="button" id="'+id+'" class="'+(active?'active':'')+'">'+txt+'</button>'}
+function drawReactions(){const m=model(),d=m.d,max=d*1.1,st=view==='stackelberg';
+ setText(st?'슈타켈베르크: 선도기업의 생산량 결정':'꾸르노: 두 반응함수의 교차','가로축은 기업 1의 생산량, 세로축은 기업 2의 생산량입니다. 선도기업의 선택을 움직여 추종기업 반응을 살펴보세요.','반응함수와 균형의 비교','선형 역수요 P=100−(q₁+q₂), MC=c. 파란 선은 기업 1의 반응함수, 주황색 선은 기업 2의 반응함수입니다. 선도기업의 선택점은 항상 추종기업 반응함수 위에 놓입니다.');
+ const {X,Y}=basicAxes(max,max,'기업 1 생산량 q₁','기업 2 생산량 q₂');
+ plotSegment(X(0),Y(d),X(d/2),Y(0),palette.blue,3);
+ plotSegment(X(0),Y(d/2),X(d),Y(0),palette.orange,3);
+ const q1=Math.min(d,leaderOutput),q2=Math.max(0,(d-q1)/2),p=100-q1-q2,profit1=(p-c)*q1,profit2=(p-c)*q2;
+ const ce=m.cournot,se=m.stackelberg;
+ plotDot(X(ce.q1),Y(ce.q2),palette.blue,'C');
+ plotDot(X(se.q1),Y(se.q2),palette.purple,'S');
+ svgNode('line',{x1:X(q1),x2:X(q1),y1:Y(q2),y2:355,stroke:palette.green,'stroke-dasharray':'5 5'});
+ plotDot(X(q1),Y(q2),palette.green,'선택');
+ setLegend([['기업 1 최적반응 R₁',palette.blue],['기업 2 최적반응 R₂',palette.orange],['꾸르노 균형 C',palette.blue],['슈타켈베르크 균형 S',palette.purple],['현재 선도기업 선택',palette.green]]);
+ $('scenario').innerHTML='<h2>기업 1의 생산량을 변경해 보세요</h2>'+sliderHTML('leader-q','기업 1이 먼저 선택하는 생산량',0,d,0.5,q1)+'<div class="actions">'+buttonHTML('set-cournot','꾸르노 균형',!st)+buttonHTML('set-stack','슈타켈베르크 균형',st)+'</div><p>기업 2는 기업 1의 생산량을 관찰한 뒤 <b>q₂ = max{0, (100 − MC − q₁)/2}</b>로 대응합니다. 기업 1은 이 반응을 예상하여 이윤을 극대화합니다.</p>';
+ $('leader-q').oninput=ev=>{leaderOutput=Number(ev.target.value);draw()};
+ $('set-cournot').onclick=()=>{leaderOutput=model().cournot.q1;draw()};
+ $('set-stack').onclick=()=>{leaderOutput=model().stackelberg.q1;draw()};
+ renderStats([['기업 1 생산량',q1],['기업 2 생산량',q2],['시장가격',p],['기업 1 이윤',profit1]]);
+}
+function drawBertrand(){const d=model().d;setText('베르트랑: 가격을 조금 낮추면?','동질재, 무제한 생산능력, 동일한 한계비용. 두 기업의 판매가격을 바꾸며 수요 배분을 확인하세요.','가격경쟁에 따른 기업별 판매량','더 저렴한 기업이 시장 전체 수요를 확보하고, 같은 가격이면 절반씩 분할합니다. 가격이 한계비용보다 낮으면 판매할 때마다 손실이 발생합니다.');
+ const P=Math.min(p1,p2),Q=Math.max(0,100-P),q1=p1<p2?Q:(p1===p2?Q/2:0),q2=p2<p1?Q:(p1===p2?Q/2:0),pi1=(p1-c)*q1,pi2=(p2-c)*q2;
+ const {X,Y}=basicAxes(90,100,'기업 및 공급량 (막대)','판매량'); // horizontal categories are two bars
+ const bars=[{x:28,q:q1,col:palette.blue,label:'기업 1'},{x:61,q:q2,col:palette.orange,label:'기업 2'}];
+ bars.forEach(o=>{const x0=X(o.x-10),x1=X(o.x+10),top=Y(o.q);svgNode('rect',{x:x0,y:top,width:x1-x0,height:355-top,fill:o.col,rx:4,opacity:.9});svgText(X(o.x),Math.max(55,top-8),fmt(o.q),{'text-anchor':'middle','font-weight':700,fill:o.col,'font-size':17});svgText(X(o.x),342,o.label,{'text-anchor':'middle',fill:'#fff','font-size':13,'font-weight':700})});
+ setLegend([['기업 1 판매량',palette.blue],['기업 2 판매량',palette.orange]]);
+ $('scenario').innerHTML='<h2>기업별 가격 설정</h2><div class="controls">'+sliderHTML('p1','기업 1 가격',0,100,1,p1)+sliderHTML('p2','기업 2 가격',0,100,1,p2)+'</div><div class="actions">'+buttonHTML('eq','베르트랑 균형 P=MC',false)+buttonHTML('undercut','기업 1이 1원 인하',false)+buttonHTML('same','동일 가격 40',false)+'</div><p>'+ (p1===p2?'두 기업의 가격이 같으므로 시장수요를 반씩 나눕니다.':p1<p2?'기업 1이 더 저렴하므로 전체 수요를 확보합니다.':'기업 2가 더 저렴하므로 전체 수요를 확보합니다.')+'</p>';
+ $('p1').oninput=ev=>{p1=+ev.target.value;draw()};$('p2').oninput=ev=>{p2=+ev.target.value;draw()};
+ $('eq').onclick=()=>{p1=c;p2=c;draw()};$('undercut').onclick=()=>{p2=Math.max(c+2,40);p1=p2-1;draw()};$('same').onclick=()=>{p1=p2=40;draw()};
+ renderStats([['시장거래가격',P],['총판매량',Q],['기업 1 이윤',pi1],['기업 2 이윤',pi2]]);
+}
+function drawWelfare(){const m=model(),d=m.d;
+ setText('담합과 시장구조별 후생','담합의 독점적 결과와 독립경쟁의 결과를 비교하고, 담합 이탈이 가격·이윤에 미치는 영향을 확인하세요.','시장수요·한계비용·후생손실','면적은 사회적 총잉여 변화에 대한 선형수요 모형의 근사치가 아니라 정확한 계산입니다. 개별기업 이탈은 상대 기업 생산량을 담합 할당량으로 고정한 단기 비교이며 새로운 균형을 의미하지 않습니다.');
+ const options={collusion:m.cartel,cournot:m.cournot,stackelberg:m.stackelberg,bertrand:m.pc};
+ let selection=options[market]||m.cartel;
+ let q1=market==='collusion'?m.cartel.q1:selection.q1??selection.Q/2;
+ let q2=market==='collusion'?m.cartel.q2:selection.q2??selection.Q/2;
+ if(market==='collusion'&&deviate){q1=Math.min(d,deviateQ);q2=m.cartel.q2;selection={Q:q1+q2,P:100-q1-q2,q1,q2}}
+ const Q=selection.Q,P=selection.P,pi1=(P-c)*q1,pi2=(P-c)*q2,CS=.5*(100-P)*Q,PS=(P-c)*Q,DWL=.5*(d-Q)*(P-c);
+ const {X,Y}=basicAxes(105,105,'시장 총생산량 Q','가격 P');
+ svgNode('polygon',{points:[[Q,c],[d,c],[Q,P]].map(v=>X(v[0])+','+Y(v[1])).join(' '),fill:palette.red,opacity:.15});
+ plotSegment(X(0),Y(100),X(100),Y(0),palette.blue,3);
+ plotSegment(X(0),Y(c),X(100),Y(c),palette.gray,3);
+ plotSegment(X(0),Y(100),X(50),Y(0),palette.orange,2,'8 5');
+ plotSegment(X(Q),Y(P),X(Q),Y(0),palette.purple,1.8,'5 5');
+ plotDot(X(Q),Y(P),palette.purple,'현재');
+ for(const [label,v,col] of [['담합',m.cartel,palette.red],['꾸르노',m.cournot,palette.orange],['슈타켈베르크',m.stackelberg,palette.green],['완전경쟁/베르트랑',m.pc,palette.blue]]){
+  plotDot(X(v.Q),Y(v.P),col,'');}
+ setLegend([['시장수요 D',palette.blue],['독점 한계수입 MR',palette.orange],['한계비용 MC',palette.gray],['사중손실(DWL)',palette.red]]);
+ $('scenario').innerHTML='<h2>시장구조 선택 및 담합 이탈 시뮬레이션</h2><div class="actions">'+buttonHTML('m-collusion','담합',market==='collusion'&&!deviate)+buttonHTML('m-deviate','기업 1 이탈',market==='collusion'&&deviate)+buttonHTML('m-cournot','꾸르노',market==='cournot')+buttonHTML('m-stackelberg','슈타켈베르크',market==='stackelberg')+buttonHTML('m-bertrand','베르트랑',market==='bertrand')+'</div>'+ (market==='collusion'&&deviate?sliderHTML('deviate-q','기업 1의 이탈 생산량',0,d,0.5,q1):'')+'<p>기업 1 이탈 시 기업 2의 생산량은 담합 합의량 '+fmt(m.cartel.q2)+'에 고정됩니다. 그때 기업 1의 최적 이탈 생산량은 '+fmt(3*d/8)+'입니다.</p>';
+ const choose=(k,isDev)=>()=>{market=k;deviate=isDev;if(isDev)deviateQ=3*model().d/8;draw()};
+ $('m-collusion').onclick=choose('collusion',false);$('m-deviate').onclick=choose('collusion',true);$('m-cournot').onclick=choose('cournot',false);$('m-stackelberg').onclick=choose('stackelberg',false);$('m-bertrand').onclick=choose('bertrand',false);
+ if($('deviate-q'))$('deviate-q').oninput=ev=>{deviateQ=Number(ev.target.value);draw()};
+ renderStats([['시장가격 P',P],['기업 1 이윤',pi1],['기업 2 이윤',pi2],['사중손실 DWL',DWL]]);
+}
+function draw(){c=+$('cost').value;$('cost-val').textContent=fmt(c);document.querySelectorAll('[data-view]').forEach(btn=>btn.classList.toggle('active',btn.dataset.view===view));$('chart').replaceChildren();if(view==='bertrand')drawBertrand();else if(view==='collusion')drawWelfare();else drawReactions();}
+document.querySelectorAll('[data-view]').forEach(btn=>btn.addEventListener('click',()=>{view=btn.dataset.view;leaderOutput=view==='cournot'?model().cournot.q1:model().stackelberg.q1;const u=new URL(window.location.href);u.searchParams.set('view',view);history.replaceState(null,'',u);draw()}));
+$('cost').addEventListener('input',()=>{const d=100-+$('cost').value;leaderOutput=view==='cournot'?d/3:d/2;if(deviate)deviateQ=3*d/8;draw()});
+leaderOutput=view==='cournot'?model().cournot.q1:model().stackelberg.q1;draw();
+</script></body></html>
