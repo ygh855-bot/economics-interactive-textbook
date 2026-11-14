@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>굴절수요곡선 모형 — 과점시장 가격경직성</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;background:#f6f8fc;color:#1f2d42}*{box-sizing:border-box}body{margin:0;padding:20px}main{max-width:900px;margin:auto}.tag{font-weight:700;letter-spacing:.1em;font-size:.75rem;color:#526e94}h1{font-size:clamp(1.4rem,3.4vw,2rem);margin:7px 0}h2{font-size:1.03rem;margin:0 0 14px}p{color:#55677e;line-height:1.65;font-size:.9rem}.panel{background:white;border:1px solid #dfe6f0;border-radius:16px;padding:22px;margin:16px 0}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.metric{border-radius:11px;background:#edf3fb;padding:12px}.metric small{font-size:.78rem;color:#64748b;display:block}.metric b{font-size:1.4rem;font-variant-numeric:tabular-nums}.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:#5a6e86}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}.controls{display:flex;justify-content:space-between;gap:16px;align-items:center}label{font-weight:700}output{font-variant-numeric:tabular-nums;font-weight:700}input[type=range]{width:100%;accent-color:#9f2bc4;margin:16px 0}.actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{border-radius:9px;background:#fff;color:#214974;border:1px solid #c6d2e2;padding:9px 15px;font:inherit;cursor:pointer}.actions button:focus-visible,input:focus-visible{outline:3px solid #75a7f2;outline-offset:2px}.note{font-size:.8rem;color:#66768c}@media(max-width:600px){body{padding:10px}.panel{padding:13px}.metrics{grid-template-columns:repeat(2,1fr)}}
+</style></head><body><main>
+<div class="tag">ECONOMICS LAB · OLIGOPOLY</div><h1>스위지의 굴절수요곡선 모형</h1>
+<p>과점기업이 경쟁사의 가격 인상은 따라 하지 않고 가격 인하는 따라 할 것으로 예상할 때, 수요곡선은 굴절되고 한계수입(MR)에 단절 구간이 발생합니다. 한계비용(MC)을 바꾸어 가격경직성을 확인해 보세요.</p>
+<section class="panel"><h2>굴절수요곡선 · 한계수입 · 한계비용</h2>
+<div class="legend"><span><i class="dot" style="background:#2563eb"></i>수요 D</span><span><i class="dot" style="background:#ca7a12"></i>한계수입 MR</span><span><i class="dot" style="background:#a12aca"></i>한계비용 MC</span></div>
+<svg id="plot" viewBox="0 0 560 330" role="img" aria-label="굴절된 수요곡선 및 단절된 한계수입곡선과 움직이는 한계비용선" style="display:block;width:100%;height:auto"></svg></section>
+<section class="panel"><div class="controls"><label for="mc">한계비용(MC)</label><output id="mcVal">40</output></div><input type="range" id="mc" min="0" max="90" step="5" value="40"/>
+<div class="metrics"><div class="metric"><small>최적 생산량</small><b id="q">40</b></div><div class="metric"><small>최적 가격</small><b id="p">100</b></div><div class="metric"><small>기업 이윤</small><b id="profit">2,400</b></div></div>
+<p id="comment" aria-live="polite"></p><div class="actions"><button id="low" type="button">MC 10 — 가격하락</button><button id="stable" type="button">MC 40 — 가격유지</button><button id="high" type="button">MC 80 — 가격상승</button></div></section>
+<section class="panel"><h2>수학적 구조</h2><p>수요: Q ≤ 40일 때 P = 140 − Q, Q ≥ 40일 때 P = 180 − 2Q.</p><p>한계수입: Q &lt; 40일 때 MR = 140 − 2Q, Q &gt; 40일 때 MR = 180 − 4Q. Q = 40에서 왼쪽 MR은 60, 오른쪽 MR은 20이므로 그 사이가 단절됩니다.</p><p><strong>20 ≤ MC ≤ 60</strong>에서는 최적 Q = 40, P = 100을 유지합니다. 이 범위에서 한계비용이 변해도 생산량과 가격은 변하지 않지만, 이윤은 변합니다.</p><p class="note">모든 수치는 교육용 가정입니다. 이 모형은 현재 가격이 주어졌을 때 가격경직성을 설명하며 최초 가격 결정이나 상대 기업의 반응 기대가 어떻게 형성되는지는 별도로 설명해야 합니다.</p></section></main>
+<script>
+"use strict";
+const $=id=>document.getElementById(id), svg=$("plot"), ns="http://www.w3.org/2000/svg";
+const X=q=>62+5.55*q,Y=p=>294-1.58*p;
+function el(tag,attrs,txt){const e=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);if(txt!==undefined)e.textContent=txt;svg.append(e);return e}
+function draw(){
+ const mc=Number($("mc").value),q=mc<20?(180-mc)/4:mc>60?(140-mc)/2:40,p=q<=40?140-q:180-2*q,profit=(p-mc)*q;
+ $("mcVal").textContent=mc;$("q").textContent=q.toFixed(1);$("p").textContent=p.toFixed(1);$("profit").textContent=profit.toLocaleString("ko-KR",{maximumFractionDigits:0});svg.replaceChildren();
+ const col="#506277";
+ el("line",{x1:X(0),y1:Y(0),x2:X(80),y2:Y(0),stroke:col,"stroke-width":2});
+ el("line",{x1:X(0),y1:Y(0),x2:X(0),y2:Y(175),stroke:col,"stroke-width":2});
+ for(const v of [0,20,40,60,80]){el("line",{x1:X(v),x2:X(v),y1:Y(0),y2:Y(0)+6,stroke:col});el("text",{x:X(v),y:Y(0)+22,fill:col,"text-anchor":"middle","font-size":13},String(v))}
+ for(const v of [0,40,80,120,160]){el("line",{x1:X(0)-6,x2:X(0),y1:Y(v),y2:Y(v),stroke:col});el("text",{x:X(0)-11,y:Y(v)+4,fill:col,"text-anchor":"end","font-size":13},String(v))}
+ el("text",{x:62,y:12,fill:col,"font-size":13},"가격 P · MR · MC");el("text",{x:520,y:316,fill:col,"font-size":13},"수량 Q");
+ const line=(x1,y1,x2,y2,color,width,dash)=>el("line",{x1:X(x1),y1:Y(y1),x2:X(x2),y2:Y(y2),stroke:color,"stroke-width":width,...(dash?{"stroke-dasharray":dash}:{})});
+ line(0,140,40,100,"#2563eb",3.6);line(40,100,80,20,"#2563eb",3.6);
+ line(0,140,40,60,"#ca7a12",3);line(40,20,45,0,"#ca7a12",3);line(40,60,40,20,"#ca7a12",2.7,"6 5");
+ line(0,mc,80,mc,"#a12aca",2.7);
+ line(q,0,q,p,"#94a3b8",1.5,"4 4");line(0,p,q,p,"#94a3b8",1.5,"4 4");
+ el("circle",{cx:X(q),cy:Y(p),r:7,fill:"#2563eb",stroke:"white","stroke-width":2});
+ el("circle",{cx:X(40),cy:Y(100),r:3,fill:"#2563eb"});
+ el("text",{x:X(12),y:Y(120)+11,fill:"#2563eb","font-size":14,"font-weight":700},"D (상단)");
+ el("text",{x:X(65),y:Y(49),fill:"#2563eb","font-size":14,"font-weight":700},"D (하단)");
+ el("text",{x:X(12),y:Y(112)+45,fill:"#a3670b","font-size":14,"font-weight":700},"MR");
+ el("text",{x:X(43),y:Y(41),fill:"#a3670b","font-size":13,"font-weight":700},"MR 단절");
+ el("text",{x:X(72),y:Y(mc)+18,fill:"#a12aca","font-size":14,"font-weight":700},"MC");
+ $("comment").textContent=mc<20?"MC가 MR의 단절 구간 아래로 내려가면 생산량을 늘리고 가격을 낮추는 것이 유리해집니다.":mc>60?"MC가 MR 단절 구간 위로 올라가면 생산량을 줄이고 가격을 높이는 것이 유리해집니다.":"MC가 20~60 사이에 있으므로 최적 생산량 40과 가격 100이 그대로 유지됩니다. 생산량과 가격이 같아도 비용 변화로 이윤은 변합니다.";
+}
+$("mc").addEventListener("input",draw);
+for(const [id,v] of [["low",10],["stable",40],["high",80]])$(id).addEventListener("click",()=>{$("mc").value=v;draw()});
+draw();
+</script></body></html>
