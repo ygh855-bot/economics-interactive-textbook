@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>호텔링 해변가 위치선정 게임 | 경제학 인터랙티브 교과서</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;color:#1b293e;background:#f7f9fc;font-synthesis:none}*{box-sizing:border-box}body{margin:0;padding:22px}main{max-width:900px;margin:auto}.eyebrow{font-weight:750;font-size:.78rem;letter-spacing:.12em;color:#54709b}h1{font-size:clamp(1.4rem,3.4vw,2rem);letter-spacing:-.045em;margin:7px 0}h2{font-size:1.05rem;margin:0 0 15px}p{color:#54647a;line-height:1.7;font-size:.89rem}.card{background:white;border:1px solid #dfe5ee;border-radius:17px;padding:22px;margin:16px 0}.panel{display:grid;grid-template-columns:1fr 1fr;gap:18px}label{display:flex;justify-content:space-between;gap:12px;font-size:.91rem;font-weight:650;margin:0 0 12px}.range{width:100%;accent-color:#2858bd;cursor:pointer}.range.orange{accent-color:#d17829}svg{display:block;width:100%;height:auto}.scores{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.score{padding:14px;border-radius:11px;background:#edf3fa}.score small{display:block;font-size:.77rem;color:#53647a}.score b{display:block;font-size:1.35rem;margin-top:5px;font-variant-numeric:tabular-nums}.actions{display:flex;gap:10px;flex-wrap:wrap}.actions button{cursor:pointer;background:#fff;border:1px solid #b6c4d8;color:#25496c;padding:10px 14px;font:inherit;border-radius:10px}.actions button:hover{background:#f2f6fb}.legend{display:flex;gap:15px;font-size:.86rem;flex-wrap:wrap;color:#526073;margin-bottom:8px}.dot{width:10px;height:10px;display:inline-block;border-radius:50%;margin-right:6px}.note{font-size:.82rem;color:#67758a}button:focus-visible,input:focus-visible{outline:3px solid #86b5f0;outline-offset:3px}@media(max-width:650px){body{padding:10px}.card{padding:14px}.panel{grid-template-columns:1fr}.scores{grid-template-columns:repeat(2,1fr)}}
+</style></head><body><main>
+<div class="eyebrow">ECONOMICS LAB · GAME THEORY</div>
+<h1>호텔링의 해변가 위치선정 게임</h1>
+<p>두 판매자의 위치를 조정하며 시장점유율과 소비자의 평균 이동거리를 비교해 보세요. 가격과 품질이 같다면 소비자는 더 가까운 가게를 선택합니다.</p>
+<section class="card">
+<h2>해변가와 시장영역</h2>
+<div class="legend"><span><i class="dot" style="background:#2563eb"></i>기업 A의 고객 영역</span><span><i class="dot" style="background:#d97706"></i>기업 B의 고객 영역</span><span>중간의 점선 = 무차별 소비자</span></div>
+<svg id="beach" viewBox="0 0 820 215" role="img" aria-label="기업 A와 B의 입점 위치 및 고객 영역"></svg>
+</section>
+<section class="card panel">
+<div><label for="a">기업 A 위치 <output id="aVal">250m</output></label><input id="a" class="range" type="range" min="0" max="1000" step="10" value="250" aria-label="기업 A의 위치"></div>
+<div><label for="b">기업 B 위치 <output id="bVal">750m</output></label><input id="b" class="range orange" type="range" min="0" max="1000" step="10" value="750" aria-label="기업 B의 위치"></div>
+</section>
+<section class="scores" aria-live="polite">
+<div class="score"><small>기업 A 점유율</small><b id="aShare">50%</b></div>
+<div class="score"><small>기업 B 점유율</small><b id="bShare">50%</b></div>
+<div class="score"><small>평균 소비자 이동거리</small><b id="avgWalk">125m</b></div>
+</section>
+<section class="card">
+<h2>두 가지 결과 비교</h2>
+<div class="actions"><button id="nash" type="button">내쉬균형: 500m · 500m</button><button id="social" type="button">이동거리 최소: 250m · 750m</button><button id="reset" type="button">초기화</button></div>
+<p id="explain" aria-live="polite"></p>
+<p class="note">가정: 길이 1km의 선형 해변, 균등한 소비자 분포, 기업 2개, 위치만 전략적으로 선택, 동일한 가격·품질·한계비용, 모든 소비자의 1단위 구매, 동거리 소비자 및 동일 위치일 때 각 기업에 절반씩 배분. 매출 또는 고객수를 극대화한다고 가정합니다.</p>
+</section>
+</main>
+<script>
+"use strict";
+const $=id=>document.getElementById(id),NS="http://www.w3.org/2000/svg",svg=$("beach"),fmt=n=>Number(n.toFixed(1)).toLocaleString("ko-KR",{maximumFractionDigits:1});
+function el(tag,attrs={},text){const e=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,String(v)));if(text!==undefined)e.textContent=String(text);svg.append(e);return e}
+function draw(){
+ const a=Number($("a").value),b=Number($("b").value),left=Math.min(a,b),right=Math.max(a,b),mid=(a+b)/2,shareA=a===b?.5:a<b?mid/1000:1-mid/1000,shareB=1-shareA;
+ const walk=(left*left+(right-left)*(right-left)/2+(1000-right)*(1000-right))/2000;
+ $("aVal").textContent=a+"m";$("bVal").textContent=b+"m";$("aShare").textContent=fmt(shareA*100)+"%";$("bShare").textContent=fmt(shareB*100)+"%";$("avgWalk").textContent=fmt(walk)+"m";
+ const X=v=>55+v*.71;svg.replaceChildren();
+ el("rect",{x:55,y:63,width:710,height:91,rx:8,fill:"#f4e4bf"});
+ if(a!==b){
+   el("rect",{x:a<b?55:X(mid),y:63,width:710*shareA,height:91,fill:"#bcd3fc"});
+   el("rect",{x:a<b?X(mid):55,y:63,width:710*shareB,height:91,fill:"#f6cca6"});
+   el("line",{x1:X(mid),y1:55,x2:X(mid),y2:166,stroke:"#56657a","stroke-width":2,"stroke-dasharray":"6 5"});
+ }
+ for(let v=0;v<=1000;v+=250){
+   el("line",{x1:X(v),y1:155,x2:X(v),y2:167,stroke:"#758399"});
+   el("text",{x:X(v),y:186,"font-size":14,fill:"#596b7e","text-anchor":"middle"},v===0?"0":v===1000?"1km":v+"m");
+ }
+ for(const [v,color,letter,y] of [[a,"#2563eb","A",89],[b,"#d97706","B",127]]){
+   el("circle",{cx:X(v),cy:y,r:16,fill:color,stroke:"#fff","stroke-width":3});
+   el("text",{x:X(v),y:y+5,"font-size":15,"font-weight":750,fill:"#fff","text-anchor":"middle"},letter);
+ }
+ el("text",{x:55,y:28,"font-size":16,"font-weight":650,fill:"#344761"},"해변 0m");
+ el("text",{x:765,y:28,"font-size":16,"font-weight":650,fill:"#344761","text-anchor":"end"},"해변 1km");
+ let text;
+ if(a===500&&b===500)text="내쉬균형입니다. 두 기업은 고객 50%를 확보하며, 어느 한 기업도 혼자 다른 위치로 이동해 50%보다 많은 고객을 얻을 수 없습니다. 그러나 평균 이동거리는 250m입니다.";
+ else if((a===250&&b===750)||(a===750&&b===250))text="소비자 평균 이동거리의 최소값 125m를 달성합니다. 두 기업이 각각 고객 50%를 갖지만, 한 기업은 경쟁기업 쪽으로 이동해 더 많은 고객을 확보할 수 있으므로 내쉬균형은 아닙니다.";
+ else if(a===b)text="같은 위치이므로 고객을 절반씩 나눕니다. 그러나 중앙(500m)이 아니라면 한 기업이 소비자가 더 많은 쪽으로 조금 이동해 점유율을 늘릴 수 있으므로 내쉬균형이 아닙니다.";
+ else text="현재 각 기업의 점유율은 두 가게에서 동일한 거리의 위치를 기준으로 나뉩니다. 두 가게가 서로 다른 위치라면 적어도 한 기업은 상대방 쪽으로 위치를 옮겨 점유율을 높일 수 있습니다.";
+ $("explain").textContent=text;
+}
+$("a").addEventListener("input",draw);$("b").addEventListener("input",draw);
+$("nash").onclick=()=>{$("a").value=500;$("b").value=500;draw()};
+$("social").onclick=()=>{$("a").value=250;$("b").value=750;draw()};
+$("reset").onclick=()=>{$("a").value=250;$("b").value=750;draw()};
+draw();
+</script></body></html>
