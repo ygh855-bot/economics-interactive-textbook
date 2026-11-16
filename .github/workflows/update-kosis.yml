@@ -1,0 +1,37 @@
+name: Refresh verified KOSIS statistics
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '42 2 * * *'
+  push:
+    paths:
+      - 'scripts/update_kosis.py'
+      - '.github/workflows/update-kosis.yml'
+permissions:
+  contents: write
+concurrency:
+  group: kh-kosis-refresh
+  cancel-in-progress: false
+jobs:
+  update-kosis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch official KOSIS table using protected credentials
+        env:
+          KOSIS_API_KEY: ${{ secrets.KOSIS_API_KEY }}
+        run: python scripts/update_kosis.py
+      - name: Commit public observations only
+        run: |
+          if [ -f data/kosis/series.json ]; then
+            git config user.name "kh-data-bot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add data/kosis/series.json
+            if ! git diff --cached --quiet; then
+              git commit -m "data: refresh verified KOSIS observations"
+              git push
+            fi
+          fi
