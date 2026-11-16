@@ -43,6 +43,8 @@ input,select,button{font:inherit}input,select{border:1px solid #cbd5e1;border-ra
 .chart-empty{color:#718096;text-align:center;padding:45px 12px;font-size:12px}
 .embedded .chartbox{padding:11px 13px 6px}.embedded .tablewrap{max-height:390px}
 @media(max-width:700px){.sourcebar{padding:10px}.chartbox svg{min-height:150px}.source-tab{padding:7px 9px}}
+
+[hidden]{display:none!important}
 </style>
 </head>
 <body>
@@ -81,7 +83,7 @@ function init(){
  $("load").onclick=load;$("download").onclick=exportCsv;$("freq").addEventListener("change",load);
  document.body.classList.add("embedded");
  const params=new URLSearchParams(location.search);const id=params.get("series");
- if(C[id])choose(id,0,false);
+ if(C[id])choose(id,({cpi:1,gdp:1,fx:1,rate:0,trade:2,fdi:1,population:1}[id]||0),false);
  else if(LEGACY[id])choose(LEGACY[id][0],LEGACY[id][1],false);
  else location.replace("https://app.notion.com/p/41ad6a801a748120b1e9d9e5fd6af0c9");
 }
