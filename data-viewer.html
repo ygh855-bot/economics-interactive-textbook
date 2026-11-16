@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KH 데이터 시계열 조회</title>
+<style>
+:root{color-scheme:light;--ink:#172235;--muted:#64748b;--border:#e3e8ef;--bg:#f5f7fa;--brand:#245c94;--white:#fff}
+*{box-sizing:border-box}body{margin:0;font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",Arial,sans-serif;color:var(--ink);background:var(--bg)}
+.wrap{max-width:1190px;margin:auto;padding:22px}header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:19px}
+.brand{font-weight:750;letter-spacing:.2px;font-size:19px}.subtitle{color:var(--muted);font-size:12px}a{color:var(--brand)}
+.layout{display:grid;grid-template-columns:245px minmax(0,1fr);gap:16px}.side,.panel{background:var(--white);border:1px solid var(--border);border-radius:13px;overflow:hidden}
+.side{align-self:start;padding:16px}.group{margin-bottom:14px}.group h3{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:10px 6px 6px}
+.item{display:block;width:100%;text-align:left;border:0;border-radius:7px;background:transparent;color:#304052;cursor:pointer;padding:9px 10px;font:inherit;font-size:12.5px}
+.item:hover{background:#edf4fb}.item.active{background:#e7f1fa;color:#16517f;font-weight:750}
+.panel-top{padding:22px 24px 18px;border-bottom:1px solid var(--border)}.eyebrow{font-size:11px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+h1{font-size:22px;line-height:1.3;margin:7px 0}p{margin:6px 0;color:#42546b}
+.note{font-size:12px;margin-top:12px;padding:10px 12px;background:#fff8e9;border:1px solid #f4dfac;border-radius:7px;color:#805d22}
+.toolbar{padding:13px 23px;display:flex;gap:9px;flex-wrap:wrap;align-items:end;border-bottom:1px solid var(--border)}
+label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--muted);font-weight:600}
+input,select,button{font:inherit}input,select{border:1px solid #cbd5e1;border-radius:7px;padding:6px 8px;background:#fff;min-height:34px;color:var(--ink)}input[type=number]{width:100px}input[type=date]{width:145px}
+.btn{padding:7px 13px;border:1px solid var(--border);background:#fff;color:var(--ink);border-radius:7px;min-height:34px;cursor:pointer}.btn.primary{background:var(--brand);border-color:var(--brand);color:white}.btn:disabled{opacity:.5;cursor:not-allowed}
+.meta{padding:13px 24px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted)}.status{display:inline-block;background:#e5f1ff;color:#215c90;border-radius:20px;padding:3px 9px}
+.tablewrap{overflow:auto;max-height:490px}table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}th,td{padding:10px 18px;border-bottom:1px solid var(--border);white-space:nowrap}th{position:sticky;top:0;background:#f5f7f9;text-align:left;font-size:12px;color:#56667a}td.num{text-align:right;font-feature-settings:"tnum"}th.num{text-align:right}tbody tr:hover{background:#f8fbfd}
+.empty{padding:45px 20px;text-align:center;color:var(--muted)}.foot{padding:16px 24px;font-size:12px;color:var(--muted);background:#fcfdfe;border-top:1px solid var(--border)}
+.foot p{font-size:12px}.footer{font-size:11px;color:#8290a4;margin:14px 0 0}.pill{border:1px solid #d5e1ed;border-radius:12px;color:#4e6a84;padding:3px 9px;font-size:11px}
+@media(max-width:700px){.wrap{padding:10px}.layout{grid-template-columns:1fr}.side{padding:11px}.group{display:inline-block;vertical-align:top;width:100%}.group h3{margin-top:5px}.item{display:inline-block;width:auto;margin-right:4px;margin-bottom:4px;padding:7px}.panel-top{padding:16px}h1{font-size:19px}.toolbar{padding:12px}.meta{padding:12px}.side{max-height:195px;overflow:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><div><div class="brand">KH DATA VIEWER <span class="pill">시계열 조회</span></div><div class="subtitle">Knowledge Hub · 원본 통계 API 연결 · 값을 Notion DB에 저장하지 않음</div></div><a href="https://app.notion.com/p/41ad6a801a748120b1e9d9e5fd6af0c9" target="_blank" rel="noopener">Notion 데이터 DB</a></header>
+<div class="layout">
+<aside class="side" id="nav"></aside>
+<main class="panel">
+ <div class="panel-top"><div class="eyebrow" id="provider">자료 제공기관</div><h1 id="title">데이터 선택</h1><p id="description"></p><div class="note" id="notice" hidden></div></div>
+ <div class="toolbar"><label>시작 기간<input id="start" type="number" min="1960" max="2100" value="2000"></label><label>종료 기간<input id="end" type="number" min="1960" max="2100" value="2026"></label><button class="btn primary" id="load">시계열 조회</button><button class="btn" id="download" disabled>CSV 다운로드</button><a id="original" class="btn" target="_blank" rel="noopener" style="text-decoration:none">공식 원본 열기</a></div>
+ <div class="meta"><span class="status" id="status">조회 준비</span><span id="count"></span><span id="unit"></span><span id="updated"></span></div>
+ <div class="tablewrap"><div class="empty" id="empty">지표를 선택하면 시계열 표가 표시됩니다.</div><table id="table" hidden><thead><tr><th>수록 시점</th><th class="num">통계 값</th><th>단위</th><th>출처·구분</th></tr></thead><tbody id="tbody"></tbody></table></div>
+ <div class="foot" id="foot">연구용 수치 인용 시 제공기관, 통계 정의, 수록 시점, 조회일을 함께 확인하세요.</div>
+</main>
+</div>
+<div class="footer">KH Data Viewer · 외부 기관의 현재 공개값을 조회합니다. 이 화면은 출처 기관의 공식 앱이 아닙니다. 조회 실패·API 제한은 별도로 표시합니다.</div>
+</div>
+<script>
+"use strict";
+const GROUPS=[
+{title:"한국은행 ECOS",ids:["bok-rate","bok-usd","bok-cpi","bok-gdp"]},
+{title:"KOTRA·국내 무역",ids:["kotra-korea","kotra-global","kotra-fdi","customs"]},
+{title:"KOSIS·인구",ids:["kosis"]},
+{title:"세계은행 연간 시계열 · 실시간",ids:["wb-gdp","wb-inflation","wb-exchange","wb-exports","wb-imports","wb-fdi","wb-population","wb-unemployment"]}
+];
+const D={
+"bok-rate":{name:"한국은행 기준금리",org:"한국은행 ECOS",kind:"ecos",code:"722Y001",item:"0101000",freq:"D",unit:"%",origin:"https://ecos.bok.or.kr/",desc:"한국은행 기준금리 통계표의 공식 ECOS 샘플 API 조회",notice:"ECOS 공개 데모 키(sample)는 최대 10건만 반환합니다. 전체 연혁을 위해서는 정식 API 키 및 서버 측 연동이 필요하며, 기관의 브라우저 CORS 정책에 따라 샘플 호출도 차단될 수 있습니다."},
+"bok-usd":{name:"원/달러 환율",org:"한국은행 ECOS → 세계은행 비교계열",kind:"wb",code:"PA.NUS.FCRF",unit:"원/달러",origin:"https://ecos.bok.or.kr/",desc:"세계은행의 한국 연평균 공식 환율 시계열을 현재 수치로 조회",notice:"아래 표의 실제 출처는 세계은행 WDI/IMF입니다. 한국은행 ECOS의 일별 환율과 같은 계열이 아니며, 연평균 수치입니다."},
+"bok-cpi":{name:"소비자물가",org:"한국은행 ECOS → 세계은행 비교계열",kind:"wb",code:"FP.CPI.TOTL.ZG",unit:"연간 변화율(%)",origin:"https://ecos.bok.or.kr/",desc:"세계은행의 한국 소비자물가상승률 연간 시계열을 조회",notice:"아래 표는 세계은행의 소비자물가상승률이며 한국은행 ECOS의 월별 CPI 지수 수준과 다릅니다. 제공기관과 정의를 확인하세요."},
+"bok-gdp":{name:"경제성장률(GDP)",org:"한국은행 ECOS → 세계은행 비교계열",kind:"wb",code:"NY.GDP.MKTP.KD.ZG",unit:"연간 변화율(%)",origin:"https://ecos.bok.or.kr/",desc:"세계은행의 한국 실질GDP 연간 성장률 시계열을 조회",notice:"아래 표는 세계은행 WDI의 연간 GDP 성장률입니다. 한국은행 ECOS 분기별 전기비·전년동기비 통계와 다른 계열입니다."},
+"kotra-korea":{name:"한국 수출입 현황",org:"KOTRA → 세계은행 비교계열",kind:"wb",code:"NE.EXP.GNFS.CD",unit:"미국 달러",origin:"https://www.kotra.or.kr/bigdata/visualization/korea",desc:"한국 상품·서비스 수출의 연간 총액을 세계은행 API로 조회",notice:"아래 표의 출처는 세계은행 WDI이며, KOTRA/관세청의 상품 수출입 월별 HS 통계와 동일하지 않습니다. 세부 수출입 품목·국가별 통계는 '공식 원본 열기'에서 조회하세요."},
+"kotra-global":{name:"글로벌 무역 현황",org:"KOTRA → 세계은행 비교계열",kind:"wb",code:"NE.EXP.GNFS.CD",country:"WLD",unit:"미국 달러",origin:"https://www.kotra.or.kr/bigdata/visualization/global",desc:"전 세계 상품·서비스 수출 총액의 연간 추이(세계은행 WDI)",notice:"KOTRA TriBIG의 UN Comtrade 국가별·품목별 국제무역 자료와는 다른 세계은행 총액 비교계열입니다. 국가별·HS코드별 세부 표는 KOTRA 공식 원본을 여세요."},
+"kotra-fdi":{name:"외국인직접투자(FDI)",org:"KOTRA → 세계은행 비교계열",kind:"wb",code:"BX.KLT.DINV.CD.WD",unit:"미국 달러",origin:"https://www.kotra.or.kr/bigdata/visualization/fdi",desc:"세계은행의 한국 FDI 순유입(국제수지 기준) 연간 시계열",notice:"KOTRA의 외국인투자 신고·도착 실적과 세계은행 FDI 순유입은 통계 개념이 다릅니다. KOTRA의 투자신고액·도착액 시계열은 공식 원본에서 조회하세요."},
+"customs":{name:"관세청 수출 10일 잠정치",org:"관세청",kind:"external",origin:"https://www.data.go.kr/data/15157908/openapi.do",desc:"10일 단위 관세청 수출 잠정치",notice:"이 데이터셋은 공공데이터 API 활용신청 및 인증이 필요합니다. 같은 정의의 시계열을 제공하는 무인증 API가 확인되지 않아 다른 수치로 대체하지 않습니다. 현재는 공식 원본에서 자료 확인이 가능합니다."},
+"kosis":{name:"KOSIS 국가승인통계",org:"KOSIS → 세계은행 비교계열",kind:"wb",code:"SP.POP.TOTL",unit:"명",origin:"https://kosis.kr/",desc:"대표 시범지표로 세계은행의 한국 인구총수 연간 시계열 표시",notice:"KOSIS 전체 통계표를 대표하는 단일 시계열은 없습니다. 현재 표는 세계은행의 한국 인구총수(별개 출처)이며, KOSIS에서 사용할 통계표 코드(orgId, tblId 등)를 지정하면 해당 원본 시계열로 바꿀 수 있습니다."},
+"wb-gdp":{name:"한국 실질 GDP 성장률",org:"세계은행 WDI",kind:"wb",code:"NY.GDP.MKTP.KD.ZG",unit:"%",origin:"https://data.worldbank.org/indicator/NY.GDP.MKTP.KD.ZG?locations=KR",desc:"한국의 연간 실질GDP 성장률"},
+"wb-inflation":{name:"한국 소비자물가상승률",org:"세계은행 WDI",kind:"wb",code:"FP.CPI.TOTL.ZG",unit:"%",origin:"https://data.worldbank.org/indicator/FP.CPI.TOTL.ZG?locations=KR",desc:"한국의 연간 소비자물가상승률"},
+"wb-exchange":{name:"한국 원/달러 연평균 환율",org:"세계은행 WDI / IMF",kind:"wb",code:"PA.NUS.FCRF",unit:"원/달러",origin:"https://data.worldbank.org/indicator/PA.NUS.FCRF?locations=KR",desc:"한국의 연간 공식 환율(연평균)"},
+"wb-exports":{name:"한국 수출: 상품·서비스",org:"세계은행 WDI",kind:"wb",code:"NE.EXP.GNFS.CD",unit:"미국 달러",origin:"https://data.worldbank.org/indicator/NE.EXP.GNFS.CD?locations=KR",desc:"한국의 상품 및 서비스 수출액(연간)"},
+"wb-imports":{name:"한국 수입: 상품·서비스",org:"세계은행 WDI",kind:"wb",code:"NE.IMP.GNFS.CD",unit:"미국 달러",origin:"https://data.worldbank.org/indicator/NE.IMP.GNFS.CD?locations=KR",desc:"한국의 상품 및 서비스 수입액(연간)"},
+"wb-fdi":{name:"한국 FDI 순유입",org:"세계은행 WDI",kind:"wb",code:"BX.KLT.DINV.CD.WD",unit:"미국 달러",origin:"https://data.worldbank.org/indicator/BX.KLT.DINV.CD.WD?locations=KR",desc:"한국의 FDI 순유입(연간·BoP 기준)"},
+"wb-population":{name:"한국 총인구",org:"세계은행 WDI",kind:"wb",code:"SP.POP.TOTL",unit:"명",origin:"https://data.worldbank.org/indicator/SP.POP.TOTL?locations=KR",desc:"한국의 총인구(연간)"},
+"wb-unemployment":{name:"한국 실업률(ILO 추정)",org:"세계은행 WDI",kind:"wb",code:"SL.UEM.TOTL.ZS",unit:"%",origin:"https://data.worldbank.org/indicator/SL.UEM.TOTL.ZS?locations=KR",desc:"한국의 실업률(ILO 모형 추정치, 연간)"}
+};
+const $=id=>document.getElementById(id);
+let selected="",records=[],sourceName="",unitName="";
+function init(){
+ const nav=$("nav");
+ for(const group of GROUPS){
+  const section=document.createElement("div");section.className="group";
+  const h=document.createElement("h3");h.textContent=group.title;section.appendChild(h);
+  for(const id of group.ids){const b=document.createElement("button");b.type="button";b.className="item";b.dataset.id=id;b.textContent=D[id].name;b.onclick=()=>choose(id,true);section.appendChild(b)}
+  nav.appendChild(section);
+ }
+ $("load").onclick=load;$("download").onclick=exportCsv;
+ const initKey=new URLSearchParams(location.search).get("series");
+ choose(Object.prototype.hasOwnProperty.call(D,initKey)?initKey:"wb-gdp",false);
+}
+function choose(id,push){
+ selected=id;const d=D[id];records=[];
+ for(const b of document.querySelectorAll(".item"))b.classList.toggle("active",b.dataset.id===id);
+ $("provider").textContent=d.org;$("title").textContent=d.name;$("description").textContent=d.desc;
+ $("notice").hidden=!d.notice;$("notice").textContent=d.notice||"";
+ $("original").href=d.origin;$("status").textContent="조회 준비";$("count").textContent="";$("unit").textContent="";$("updated").textContent="";
+ $("start").value=d.kind==="ecos"?"2026":"2000";$("end").value=new Date().getFullYear();
+ $("empty").textContent="시계열을 불러오는 중입니다.";$("empty").hidden=false;$("table").hidden=true;$("download").disabled=true;
+ if(push){const u=new URL(location.href);u.searchParams.set("series",id);history.replaceState(null,"",u.toString())}
+ load();
+}
+function fmt(v){
+ if(v===null||v===undefined||Number.isNaN(v))return "—";
+ if(Math.abs(v)>=1e7)return Number(v).toLocaleString("ko-KR",{maximumFractionDigits:0});
+ return Number(v).toLocaleString("ko-KR",{maximumFractionDigits:4});
+}
+function status(t){$("status").textContent=t;}
+function render(rows,d,label){
+ records=rows.slice().sort((a,b)=>String(b.time).localeCompare(String(a.time)));sourceName=label;unitName=d.unit||"";
+ $("tbody").replaceChildren();
+ const frag=document.createDocumentFragment();
+ for(const r of records){
+  const tr=document.createElement("tr");
+  for(const [k,cls] of [["time",""],["value","num"],["unit",""],["source",""]]){
+   const td=document.createElement("td");td.className=cls;td.textContent=k==="value"?fmt(r.value):(k==="unit"?d.unit:(k==="source"?label:r.time));tr.appendChild(td);
+  }frag.appendChild(tr);
+ }
+ $("tbody").appendChild(frag);$("empty").hidden=records.length>0;$("table").hidden=!records.length;
+ if(!records.length)$("empty").textContent="해당 기간의 수록 자료가 없습니다. 기간을 변경해 다시 조회하세요.";
+ $("download").disabled=!records.length;$("count").textContent=records.length.toLocaleString("ko-KR")+"개 시점";
+ $("unit").textContent=d.unit?"단위: "+d.unit:"";$("updated").textContent="열람: "+new Date().toLocaleString("ko-KR");
+ status(records.length?"조회 성공":"조회 결과 없음");
+}
+async function load(){
+ const d=D[selected];records=[];$("download").disabled=true;
+ $("table").hidden=true;$("empty").hidden=false;$("empty").textContent="공식 데이터 응답을 확인하고 있습니다…";status("조회 중");
+ const sy=Number($("start").value),ey=Number($("end").value);
+ if(!Number.isInteger(sy)||!Number.isInteger(ey)||sy>ey||sy<1900||ey>2100){$("empty").textContent="올바른 조회 기간을 선택하세요.";status("기간 오류");return}
+ if(d.kind==="external"){$("empty").textContent="현재 데이터 출처의 공개 표 조회 API가 연결되지 않았습니다. 공식 원본에서 기간을 설정해 조회하세요.";status("외부 API 미연결");return}
+ try{
+  let rows=[],label="";
+  if(d.kind==="wb"){
+   const country=d.country||"KOR";
+   const url="https://api.worldbank.org/v2/country/"+encodeURIComponent(country)+"/indicator/"+encodeURIComponent(d.code)+"?format=json&per_page=1000&date="+sy+":"+ey;
+   const res=await fetch(url,{cache:"no-store"});
+   if(!res.ok)throw Error("세계은행 API HTTP "+res.status);
+   const data=await res.json();
+   if(!Array.isArray(data)||!Array.isArray(data[1]))throw Error(data?.message?.[0]?.value||"세계은행 API 응답 형식이 올바르지 않습니다.");
+   rows=data[1].filter(x=>x&&x.value!==null&&Number.isFinite(Number(x.value))).map(x=>({time:x.date,value:Number(x.value)}));
+   label="세계은행 WDI"+(d.country==="WLD"?" · 세계 합계":" · 한국");
+  }else if(d.kind==="ecos"){
+   const today=new Date();
+   const pad=n=>String(n).padStart(2,"0");
+   const start=sy+"0101";const end=String(ey)+pad(today.getMonth()+1)+pad(today.getDate());
+   const url="https://ecos.bok.or.kr/api/StatisticSearch/sample/json/kr/1/10/"+d.code+"/"+d.freq+"/"+start+"/"+end+"/"+d.item;
+   const res=await fetch(url,{cache:"no-store"});
+   if(!res.ok)throw Error("ECOS API HTTP "+res.status);
+   const data=await res.json();
+   const err=data.RESULT?.MESSAGE||data.StatisticSearch?.RESULT?.MESSAGE;
+   if(err)throw Error(err);
+   rows=(data.StatisticSearch?.row||[]).filter(x=>x.DATA_VALUE!==null&&!Number.isNaN(Number(x.DATA_VALUE))).map(x=>({time:x.TIME,value:Number(x.DATA_VALUE)}));
+   label="한국은행 ECOS · 데모 최대 10건";
+  }
+  render(rows,d,label);
+ }catch(e){
+  status("조회 실패");
+  const reason= e instanceof TypeError?"네트워크 또는 브라우저 CORS 정책으로 데이터 요청이 차단되었을 수 있습니다.":String(e?.message||e);
+  $("empty").textContent="시계열을 가져오지 못했습니다. "+reason+" 공식 원본 열기로 직접 확인할 수 있습니다.";
+ }
+}
+function exportCsv(){
+ if(!records.length)return;
+ const header=["기간","수치","단위","출처"].join(",");
+ const esc=s=>'"'+String(s).replaceAll('"','""')+'"';
+ const lines=records.map(r=>[r.time,r.value,unitName,sourceName].map(esc).join(","));
+ const blob=new Blob(["\uFEFF",header+"\r\n"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"});
+ const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download="KH_"+selected+"_"+new Date().toISOString().slice(0,10)+".csv";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(u);
+}
+init();
+</script>
+</body>
+</html>
