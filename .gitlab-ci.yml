@@ -1,0 +1,19 @@
+# Knowledge Hub — GitLab Pages deployment
+# Import this repository into GitLab with "Repository by URL".
+# Every HTML file in the repository root is published without modification.
+# The source remains intact; publishing only copies files to public/.
+stages:
+  - deploy
+
+deploy-pages:
+  image: alpine:3.20
+  stage: deploy
+  script:
+    - mkdir -p public
+    - cp ./*.html public/
+  pages: true
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
