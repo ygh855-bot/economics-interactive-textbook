@@ -32,6 +32,17 @@ input,select,button{font:inherit}input,select{border:1px solid #cbd5e1;border-ra
 .embedded th,.embedded td{padding:9px 13px}
 #freqhint{color:#6c7f93}
 @media(max-width:700px){.embedded .panel-top,.embedded .toolbar,.embedded .meta{padding:10px}}
+
+.sourcebar{padding:10px 16px 11px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.sourcebar>span{font-weight:700;font-size:12px;color:#536981;min-width:65px}.sourcetabs{display:flex;flex-wrap:wrap;gap:7px}
+.source-tab{cursor:pointer;border:1px solid #cad6e2;background:#fff;color:#34475f;padding:7px 12px;border-radius:18px;font-size:12px}
+.source-tab.active{background:#245c94;color:#fff;border-color:#245c94;font-weight:700}
+.chartbox{padding:12px 17px 8px;border-bottom:1px solid var(--border)}
+.charthead{display:flex;justify-content:space-between;gap:9px;align-items:center;font-size:12px}
+.charthead span{font-size:11px;color:#64748b}.chartbox svg{display:block;width:100%;height:auto;min-height:185px;max-height:240px}
+.chart-empty{color:#718096;text-align:center;padding:45px 12px;font-size:12px}
+.embedded .chartbox{padding:11px 13px 6px}.embedded .tablewrap{max-height:390px}
+@media(max-width:700px){.sourcebar{padding:10px}.chartbox svg{min-height:150px}.source-tab{padding:7px 9px}}
 </style>
 </head>
 <body>
@@ -41,8 +52,10 @@ input,select,button{font:inherit}input,select{border:1px solid #cbd5e1;border-ra
 <aside class="side" id="nav"></aside>
 <main class="panel">
  <div class="panel-top"><div class="eyebrow" id="provider">자료 제공기관</div><h1 id="title">데이터 선택</h1><p id="description"></p><div class="note" id="notice" hidden></div></div>
+ <div class="sourcebar"><span>출처 선택</span><div class="sourcetabs" id="sources" role="tablist" aria-label="통계 제공기관"></div></div>
  <div class="toolbar"><label>조회 주기<select id="freq"><option value="A">연별</option><option value="Q">분기별</option><option value="M">월별</option><option value="D">일별</option></select></label><label>시작 연도<input id="start" type="number" min="1900" max="2100" value="2000"></label><label>종료 연도<input id="end" type="number" min="1900" max="2100" value="2026"></label><button class="btn primary" id="load">시계열 조회</button><button class="btn" id="download" disabled>CSV 다운로드</button><a id="original" class="btn" target="_blank" rel="noopener" style="text-decoration:none">공식 원본 열기</a></div>
  <div class="meta"><span class="status" id="status">조회 준비</span><span id="count"></span><span id="unit"></span><span id="updated"></span><span id="freqhint"></span></div>
+ <div class="chartbox"><div class="charthead"><strong>시계열 추이</strong><span id="chart-note">출처별 관측치</span></div><div id="chart-empty" class="chart-empty">조회한 실측값으로만 그래프를 표시합니다.</div><svg id="chart" xmlns="http://www.w3.org/2000/svg" aria-label="시계열 추이 그래프" role="img" viewBox="0 0 900 220" hidden></svg></div>
  <div class="tablewrap"><div class="empty" id="empty">지표를 선택하면 시계열 표가 표시됩니다.</div><table id="table" hidden><thead><tr><th>수록 시점</th><th class="num">통계 값</th><th>단위</th><th>출처·구분</th></tr></thead><tbody id="tbody"></tbody></table></div>
  <div class="foot" id="foot">연구용 수치 인용 시 제공기관, 통계 정의, 수록 시점, 조회일을 함께 확인하세요.</div>
 </main>
@@ -51,157 +64,153 @@ input,select,button{font:inherit}input,select{border:1px solid #cbd5e1;border-ra
 </div>
 <script>
 "use strict";
-const GROUPS=[
-{title:"한국은행 ECOS",ids:["bok-rate","bok-usd","bok-cpi","bok-gdp"]},
-{title:"KOTRA·국내 무역",ids:["kotra-korea","kotra-global","kotra-fdi","customs"]},
-{title:"KOSIS·인구",ids:["kosis"]},
-{title:"세계은행 연간 시계열 · 실시간",ids:["wb-gdp","wb-inflation","wb-exchange","wb-exports","wb-imports","wb-fdi","wb-population","wb-unemployment"]}
-];
-const D={
-"bok-rate":{name:"한국은행 기준금리",org:"한국은행 ECOS",kind:"ecos",code:"722Y001",item:"0101000",freq:"D",unit:"%",origin:"https://ecos.bok.or.kr/",desc:"한국은행 기준금리 통계표의 공식 ECOS 샘플 API 조회",notice:"ECOS 공개 데모 키(sample)는 최대 10건만 반환합니다. 전체 연혁을 위해서는 정식 API 키 및 서버 측 연동이 필요하며, 기관의 브라우저 CORS 정책에 따라 샘플 호출도 차단될 수 있습니다."},
-"bok-usd":{name:"원/달러 환율",org:"유럽중앙은행 ECB 비교 시계열",kind:"ecb",code:"EXR",unit:"원/달러",origin:"https://data.ecb.europa.eu/data/datasets/EXR",desc:"유럽중앙은행의 원/유로와 달러/유로 시계열을 같은 시점에 맞춰 나눈 원/달러 교차환율. ECB 원자료 주기를 선택해 조회",notice:"표의 출처는 한국은행 ECOS가 아닌 유럽중앙은행 ECB입니다. KRW/EUR ÷ USD/EUR 방식으로 계산한 교차환율이며, 한국은행이 공표하는 원/달러 환율과 수치·주기·정의가 다를 수 있습니다. 월·분기·연 값은 ECB에서 해당 주기로 공표한 원자료의 비율입니다."},
-"bok-cpi":{name:"소비자물가",org:"한국은행 ECOS → 세계은행 비교계열",kind:"wb",code:"FP.CPI.TOTL.ZG",unit:"연간 변화율(%)",origin:"https://ecos.bok.or.kr/",desc:"세계은행의 한국 소비자물가상승률 연간 시계열을 조회",notice:"아래 표는 세계은행의 소비자물가상승률이며 한국은행 ECOS의 월별 CPI 지수 수준과 다릅니다. 제공기관과 정의를 확인하세요."},
-"bok-gdp":{name:"경제성장률(GDP)",org:"한국은행 ECOS → 세계은행 비교계열",kind:"wb",code:"NY.GDP.MKTP.KD.ZG",unit:"연간 변화율(%)",origin:"https://ecos.bok.or.kr/",desc:"세계은행의 한국 실질GDP 연간 성장률 시계열을 조회",notice:"아래 표는 세계은행 WDI의 연간 GDP 성장률입니다. 한국은행 ECOS 분기별 전기비·전년동기비 통계와 다른 계열입니다."},
-"kotra-korea":{name:"한국 수출입 현황",org:"KOTRA → 세계은행 비교계열",kind:"wb",code:"NE.EXP.GNFS.CD",unit:"미국 달러",origin:"https://www.kotra.or.kr/bigdata/visualization/korea",desc:"한국 상품·서비스 수출의 연간 총액을 세계은행 API로 조회",notice:"아래 표의 출처는 세계은행 WDI이며, KOTRA/관세청의 상품 수출입 월별 HS 통계와 동일하지 않습니다. 세부 수출입 품목·국가별 통계는 '공식 원본 열기'에서 조회하세요."},
-"kotra-global":{name:"글로벌 무역 현황",org:"KOTRA → 세계은행 비교계열",kind:"wb",code:"NE.EXP.GNFS.CD",country:"WLD",unit:"미국 달러",origin:"https://www.kotra.or.kr/bigdata/visualization/global",desc:"전 세계 상품·서비스 수출 총액의 연간 추이(세계은행 WDI)",notice:"KOTRA TriBIG의 UN Comtrade 국가별·품목별 국제무역 자료와는 다른 세계은행 총액 비교계열입니다. 국가별·HS코드별 세부 표는 KOTRA 공식 원본을 여세요."},
-"kotra-fdi":{name:"외국인직접투자(FDI)",org:"KOTRA → 세계은행 비교계열",kind:"wb",code:"BX.KLT.DINV.CD.WD",unit:"미국 달러",origin:"https://www.kotra.or.kr/bigdata/visualization/fdi",desc:"세계은행의 한국 FDI 순유입(국제수지 기준) 연간 시계열",notice:"KOTRA의 외국인투자 신고·도착 실적과 세계은행 FDI 순유입은 통계 개념이 다릅니다. KOTRA의 투자신고액·도착액 시계열은 공식 원본에서 조회하세요."},
-"customs":{name:"관세청 수출 10일 잠정치",org:"관세청",kind:"external",origin:"https://www.data.go.kr/data/15157908/openapi.do",desc:"10일 단위 관세청 수출 잠정치",notice:"이 데이터셋은 공공데이터 API 활용신청 및 인증이 필요합니다. 같은 정의의 시계열을 제공하는 무인증 API가 확인되지 않아 다른 수치로 대체하지 않습니다. 현재는 공식 원본에서 자료 확인이 가능합니다."},
-"kosis":{name:"KOSIS 국가승인통계",org:"KOSIS → 세계은행 비교계열",kind:"wb",code:"SP.POP.TOTL",unit:"명",origin:"https://kosis.kr/",desc:"대표 시범지표로 세계은행의 한국 인구총수 연간 시계열 표시",notice:"KOSIS 전체 통계표를 대표하는 단일 시계열은 없습니다. 현재 표는 세계은행의 한국 인구총수(별개 출처)이며, KOSIS에서 사용할 통계표 코드(orgId, tblId 등)를 지정하면 해당 원본 시계열로 바꿀 수 있습니다."},
-"wb-gdp":{name:"한국 실질 GDP 성장률",org:"세계은행 WDI",kind:"wb",code:"NY.GDP.MKTP.KD.ZG",unit:"%",origin:"https://data.worldbank.org/indicator/NY.GDP.MKTP.KD.ZG?locations=KR",desc:"한국의 연간 실질GDP 성장률"},
-"wb-inflation":{name:"한국 소비자물가상승률",org:"세계은행 WDI",kind:"wb",code:"FP.CPI.TOTL.ZG",unit:"%",origin:"https://data.worldbank.org/indicator/FP.CPI.TOTL.ZG?locations=KR",desc:"한국의 연간 소비자물가상승률"},
-"wb-exchange":{name:"한국 원/달러 연평균 환율",org:"세계은행 WDI / IMF",kind:"wb",code:"PA.NUS.FCRF",unit:"원/달러",origin:"https://data.worldbank.org/indicator/PA.NUS.FCRF?locations=KR",desc:"한국의 연간 공식 환율(연평균)"},
-"wb-exports":{name:"한국 수출: 상품·서비스",org:"세계은행 WDI",kind:"wb",code:"NE.EXP.GNFS.CD",unit:"미국 달러",origin:"https://data.worldbank.org/indicator/NE.EXP.GNFS.CD?locations=KR",desc:"한국의 상품 및 서비스 수출액(연간)"},
-"wb-imports":{name:"한국 수입: 상품·서비스",org:"세계은행 WDI",kind:"wb",code:"NE.IMP.GNFS.CD",unit:"미국 달러",origin:"https://data.worldbank.org/indicator/NE.IMP.GNFS.CD?locations=KR",desc:"한국의 상품 및 서비스 수입액(연간)"},
-"wb-fdi":{name:"한국 FDI 순유입",org:"세계은행 WDI",kind:"wb",code:"BX.KLT.DINV.CD.WD",unit:"미국 달러",origin:"https://data.worldbank.org/indicator/BX.KLT.DINV.CD.WD?locations=KR",desc:"한국의 FDI 순유입(연간·BoP 기준)"},
-"wb-population":{name:"한국 총인구",org:"세계은행 WDI",kind:"wb",code:"SP.POP.TOTL",unit:"명",origin:"https://data.worldbank.org/indicator/SP.POP.TOTL?locations=KR",desc:"한국의 총인구(연간)"},
-"wb-unemployment":{name:"한국 실업률(ILO 추정)",org:"세계은행 WDI",kind:"wb",code:"SL.UEM.TOTL.ZS",unit:"%",origin:"https://data.worldbank.org/indicator/SL.UEM.TOTL.ZS?locations=KR",desc:"한국의 실업률(ILO 모형 추정치, 연간)"}
-};
+const C={"cpi":{"title":"소비자물가지수","section":"거시경제","desc":"동일한 소비자물가 주제라도 출처에 따라 기준연도와 조사·공표 방식이 달라집니다.","sources":[{"label":"한국은행 ECOS","kind":"ecos","code":"901Y009","item":"0","freq":"M","unit":"2020=100 (기준연도 확인)","origin":"https://ecos.bok.or.kr/","notice":"한국은행 ECOS 총지수 월간 원자료(901Y009, 항목 0) 샘플 조회입니다. 인증키 없이 최대 10건이며 연도별·분기별 보기를 임의로 생성하지 않습니다. 기준연도는 API 메타데이터를 다시 확인해야 합니다."},{"label":"세계은행 WDI","kind":"wb","code":"FP.CPI.TOTL","unit":"2010=100","origin":"https://data.worldbank.org/indicator/FP.CPI.TOTL?locations=KR","notice":"세계은행의 연간 소비자물가지수(2010=100)입니다. 한국은행 월간 지수와 기준연도·자료주기가 달라 수치 자체의 단순 비교는 부적절합니다."}]},"gdp":{"title":"국내총생산 및 경제성장률","section":"거시경제","desc":"실질 GDP 성장률과 GDP 수준·전기비·전년동기비를 혼동하지 않습니다.","sources":[{"label":"한국은행 ECOS","kind":"external","unit":"계열 선택 필요","origin":"https://ecos.bok.or.kr/","notice":"한국은행 GDP는 실질/명목, 전기비/전년동기비, 계절조정 여부에 따라 계열이 달라집니다. 정확한 통계표·항목 코드를 확정하지 않아 자동 조회 대신 공식 원본으로 연결합니다."},{"label":"세계은행 WDI","kind":"wb","code":"NY.GDP.MKTP.KD.ZG","unit":"성장률(%)","origin":"https://data.worldbank.org/indicator/NY.GDP.MKTP.KD.ZG?locations=KR","notice":"세계은행 연간 실질 GDP 성장률입니다. 한국은행의 분기별 GDP 성장률과는 주기가 다릅니다."}]},"fx":{"title":"원/달러 환율","section":"거시경제","desc":"일별·월별·연별 환율을 출처별로 선택해 볼 수 있습니다.","sources":[{"label":"한국은행 ECOS","kind":"ecos","code":"731Y001","item":"0000001","freq":"D","unit":"원/달러","origin":"https://ecos.bok.or.kr/","notice":"한국은행 ECOS 일별 환율의 샘플 조회입니다. 항목코드 확인과 인증키·브라우저 접근 제한에 따라 응답에 실패할 수 있으며 최대 10건만 반환합니다."},{"label":"유럽중앙은행 ECB","kind":"ecb","unit":"원/달러 (교차환율)","origin":"https://data.ecb.europa.eu/data/datasets/EXR","notice":"ECB의 원/유로를 달러/유로로 나눈 원/달러 교차환율입니다. 한국은행 고시 원/달러와 다른 자료이며, 선택한 주기의 ECB 원자료를 호출합니다."},{"label":"세계은행 WDI","kind":"wb","code":"PA.NUS.FCRF","unit":"원/달러(연평균)","origin":"https://data.worldbank.org/indicator/PA.NUS.FCRF?locations=KR","notice":"세계은행/IMF의 연평균 공식 환율입니다. 일별 환율이 아닙니다."}]},"rate":{"title":"한국은행 기준금리","section":"거시경제","desc":"한국은행 통화정책 기준금리의 변경일별 추이를 조회합니다.","sources":[{"label":"한국은행 ECOS","kind":"ecos","code":"722Y001","item":"0101000","freq":"D","unit":"%","origin":"https://www.bok.or.kr/portal/singl/baseRate/list.do?menuNo=200656","notice":"한국은행 ECOS 기준금리 샘플 API는 최대 10건이며, 기준금리 변경일과 일별 관측의 차이를 주의해야 합니다. 전체 이력은 정식 API 키가 필요합니다."}]},"trade":{"title":"수출입 통계","section":"국제경제","desc":"국내·세계 무역, 상품·서비스 총액과 10일 잠정치는 정의가 서로 다릅니다.","sources":[{"label":"KOTRA 한국 무역","kind":"external","origin":"https://www.kotra.or.kr/bigdata/visualization/korea","unit":"상품·국가별 수출입","notice":"KOTRA TriBIG의 국가별·품목별 상세 무역 통계입니다. 현재 공식 페이지 내부 필터를 사용해야 하며 직접 수치 API는 미연결입니다."},{"label":"KOTRA 글로벌 무역","kind":"external","origin":"https://www.kotra.or.kr/bigdata/visualization/global","unit":"국가·품목별 무역","notice":"KOTRA TriBIG의 글로벌 수출입 현황입니다. 국가·HS 품목별 세부 수치를 직접 가져오는 API가 아직 연결되지 않았습니다."},{"label":"세계은행 · 수출","kind":"wb","code":"NE.EXP.GNFS.CD","unit":"미국 달러(상품+서비스)","origin":"https://data.worldbank.org/indicator/NE.EXP.GNFS.CD?locations=KR","notice":"한국 상품·서비스 수출액의 연간 국민계정 기준 값입니다. 관세청 상품 수출액 및 KOTRA HS 품목 무역통계와 범위가 다릅니다."},{"label":"세계은행 · 수입","kind":"wb","code":"NE.IMP.GNFS.CD","unit":"미국 달러(상품+서비스)","origin":"https://data.worldbank.org/indicator/NE.IMP.GNFS.CD?locations=KR","notice":"한국 상품·서비스 수입액의 연간 국민계정 기준 값입니다. KOTRA·관세청 상품 수입액과 정의가 다릅니다."},{"label":"관세청 잠정치","kind":"external","origin":"https://www.data.go.kr/data/15157908/openapi.do","unit":"잠정치","notice":"관세청 주요 품목 수출 10일 잠정치 API는 인증 및 서비스 명세 검증이 필요합니다. 연결 전까지 다른 기관의 수치로 대체하지 않습니다."}]},"fdi":{"title":"외국인직접투자(FDI)","section":"국제경제","desc":"KOTRA 신고·도착액과 국제수지 기준 순유입은 서로 다른 개념입니다.","sources":[{"label":"KOTRA 투자통계","kind":"external","origin":"https://www.kotra.or.kr/bigdata/visualization/fdi","unit":"신고액·도착액","notice":"KOTRA TriBIG 외국인직접투자 통계입니다. 신고액과 도착액을 구분하며 정식 자동 API가 연결되지 않아 원본 화면으로 이동합니다."},{"label":"세계은행 WDI","kind":"wb","code":"BX.KLT.DINV.CD.WD","origin":"https://data.worldbank.org/indicator/BX.KLT.DINV.CD.WD?locations=KR","unit":"미국 달러(순유입)","notice":"세계은행 국제수지 기준 FDI 순유입 연간 자료입니다. KOTRA 신고액·도착액과 동일한 통계가 아닙니다."}]},"population":{"title":"총인구","section":"사회·인구","desc":"국가승인통계 KOSIS 및 국제비교용 세계은행 총인구 통계를 구분합니다.","sources":[{"label":"KOSIS 국가통계포털","kind":"external","origin":"https://kosis.kr/","unit":"명","notice":"KOSIS의 구체적인 총인구 통계표가 아직 지정되지 않았습니다. 원본 인구 통계 검색에서 조사·추계·기준시점을 선택하세요."},{"label":"세계은행 WDI","kind":"wb","code":"SP.POP.TOTL","origin":"https://data.worldbank.org/indicator/SP.POP.TOTL?locations=KR","unit":"명","notice":"세계은행 총인구의 연간 시계열입니다. KOSIS 총조사인구 및 장래인구추계와 정의·기준시점이 다를 수 있습니다."}]}};
+const GROUPS=[{title:"거시경제 지표",ids:["cpi","gdp","fx","rate"]},{title:"국제경제 지표",ids:["trade","fdi"]},{title:"사회·인구",ids:["population"]}];
+const LEGACY={"bok-cpi":["cpi",0],"wb-inflation":["cpi",1],"bok-gdp":["gdp",0],"wb-gdp":["gdp",1],"bok-usd":["fx",1],"bok-rate":["rate",0],"kotra-korea":["trade",0],"kotra-global":["trade",1],"wb-exports":["trade",2],"customs":["trade",4],"kotra-fdi":["fdi",0],"wb-fdi":["fdi",1],"kosis":["population",0]};
 const $=id=>document.getElementById(id);
-let selected="",records=[],sourceName="",unitName="";
+const NS="http://www.w3.org/2000/svg";
+let concept="",sourceIndex=0,records=[],sourceName="",unitName="",requestNum=0;
 function init(){
  const nav=$("nav");
- for(const group of GROUPS){
-  const section=document.createElement("div");section.className="group";
-  const h=document.createElement("h3");h.textContent=group.title;section.appendChild(h);
-  for(const id of group.ids){const b=document.createElement("button");b.type="button";b.className="item";b.dataset.id=id;b.textContent=D[id].name;b.onclick=()=>choose(id,true);section.appendChild(b)}
-  nav.appendChild(section);
+ for(const g of GROUPS){
+   const section=document.createElement("section");section.className="group";
+   const label=document.createElement("h3");label.textContent=g.title;section.appendChild(label);
+   for(const id of g.ids){const b=document.createElement("button");b.type="button";b.className="item";b.dataset.id=id;b.textContent=C[id].title;b.onclick=()=>choose(id,0,true);section.appendChild(b);}
+   nav.appendChild(section);
  }
  $("load").onclick=load;$("download").onclick=exportCsv;$("freq").addEventListener("change",load);
  document.body.classList.add("embedded");
- const initKey=new URLSearchParams(location.search).get("series");
- if(!Object.prototype.hasOwnProperty.call(D,initKey)){
-  location.replace("https://app.notion.com/p/41ad6a801a748120b1e9d9e5fd6af0c9");
-  return;
- }
- choose(initKey,false);
+ const params=new URLSearchParams(location.search);const id=params.get("series");
+ if(C[id])choose(id,0,false);
+ else if(LEGACY[id])choose(LEGACY[id][0],LEGACY[id][1],false);
+ else location.replace("https://app.notion.com/p/41ad6a801a748120b1e9d9e5fd6af0c9");
 }
-function choose(id,push){
- selected=id;const d=D[id];records=[];
+function available(d){return d.kind==="ecb"?["A","Q","M","D"]:d.kind==="ecos"?[d.freq]:d.kind==="wb"?["A"]:[];}
+function choose(id,index,push){
+ concept=id;
  for(const b of document.querySelectorAll(".item"))b.classList.toggle("active",b.dataset.id===id);
- $("provider").textContent=d.org;$("title").textContent=d.name;$("description").textContent=d.desc;
- $("notice").hidden=!d.notice;$("notice").textContent=d.notice||"";
- $("original").href=d.origin;$("status").textContent="조회 준비";$("count").textContent="";$("unit").textContent="";$("updated").textContent="";
- $("start").value=d.kind==="ecos"?"2026":"2000";$("end").value=new Date().getFullYear();
- const available=d.kind==="ecb"?["A","Q","M","D"]:d.kind==="ecos"?["D"]:d.kind==="wb"?["A"]:[];
- for(const option of $("freq").options)option.disabled=!available.includes(option.value);
- $("freq").value=d.kind==="ecb"?"M":d.kind==="ecos"?"D":"A";$("freq").disabled=!available.length;
- $("freqhint").textContent=d.kind==="wb"?"원자료: 연간 / 월·분기 전환 불가":d.kind==="ecb"?"ECB 원자료에서 월·분기·연 주기 직접 선택":d.kind==="ecos"?"ECOS 데모: 일별 최대 10건": "공식 API 미연결";
- $("empty").textContent="시계열을 불러오는 중입니다.";$("empty").hidden=false;$("table").hidden=true;$("download").disabled=true;
- if(push){const u=new URL(location.href);u.searchParams.set("series",id);history.replaceState(null,"",u.toString())}
+ const entry=C[id];$("title").textContent=entry.title;$("description").textContent=entry.desc;
+ $("provider").textContent=entry.section+" · 출처별 조회";
+ const tabs=$("sources");tabs.replaceChildren();
+ entry.sources.forEach((d,i)=>{
+  const b=document.createElement("button");b.type="button";b.className="source-tab";b.textContent=d.label;b.dataset.index=String(i);
+  b.onclick=()=>chooseSource(i);tabs.appendChild(b);
+ });
+ if(push){const u=new URL(location.href);u.searchParams.set("series",id);history.replaceState(null,"",u.toString());}
+ chooseSource(index);
+}
+function chooseSource(index){
+ sourceIndex=index;const d=C[concept].sources[index];
+ for(const el of document.querySelectorAll(".source-tab")){
+  const active=Number(el.dataset.index)===index;el.classList.toggle("active",active);el.setAttribute("aria-selected",active?"true":"false");
+ }
+ $("notice").textContent=d.notice||"";$("notice").hidden=!d.notice;
+ $("original").href=d.origin;$("original").textContent="해당 출처 원본";
+ $("start").value=d.kind==="ecos"?"2020":"2000";$("end").value=new Date().getFullYear();
+ const choices=available(d);
+ for(const opt of $("freq").options)opt.disabled=!choices.includes(opt.value);
+ $("freq").value=d.kind==="ecb"?"M":choices[0]||"A";$("freq").disabled=choices.length<=1;
+ $("freqhint").textContent=d.kind==="wb"?"연간 공식 원자료":d.kind==="ecb"?"선택 주기의 ECB 원자료":d.kind==="ecos"?"ECOS 샘플 조회(최대 10건)":"공식 시계열 API 미연결";
+ $("chart-note").textContent="출처별 실제 관측치를 시각화합니다.";
  load();
 }
 function fmt(v){
- if(v===null||v===undefined||Number.isNaN(v))return "—";
- if(Math.abs(v)>=1e7)return Number(v).toLocaleString("ko-KR",{maximumFractionDigits:0});
- return Number(v).toLocaleString("ko-KR",{maximumFractionDigits:4});
+ if(v===null||v===undefined||!Number.isFinite(Number(v)))return "—";
+ const n=Number(v);
+ return n.toLocaleString("ko-KR",{maximumFractionDigits:Math.abs(n)>=100000?0:4});
 }
-function status(t){$("status").textContent=t;}
+function status(s){$("status").textContent=s;}
+function svgEl(type,attrs={},txt){
+ const el=document.createElementNS(NS,type);
+ for(const [k,v] of Object.entries(attrs))el.setAttribute(k,String(v));
+ if(txt!==undefined)el.textContent=txt;
+ return el;
+}
+function renderChart(rows,d){
+ const svg=$("chart");svg.replaceChildren();
+ const data=rows.slice().sort((a,b)=>String(a.time).localeCompare(String(b.time))).filter(x=>Number.isFinite(x.value));
+ if(data.length<1){$("chart-empty").hidden=false;svg.hidden=true;$("chart-empty").textContent="시계열을 불러오면 그래프가 표시됩니다.";return;}
+ $("chart-empty").hidden=true;svg.hidden=false;
+ svg.setAttribute("viewBox","0 0 900 220");
+ const L=78,R=19,T=16,B=36,W=900-L-R,H=220-T-B;
+ const vals=data.map(d=>d.value);let mn=Math.min(...vals),mx=Math.max(...vals);
+ const pad=(mx-mn||Math.max(1,Math.abs(mx)*0.05))*0.12;mn-=pad;mx+=pad;
+ const x=i=>L+(data.length===1?W/2:W*i/(data.length-1));
+ const y=v=>T+H*(1-(v-mn)/(mx-mn));
+ for(let i=0;i<=4;i++){const yy=T+H*i/4;svg.appendChild(svgEl("line",{x1:L,y1:yy,x2:900-R,y2:yy,stroke:"#e1e6ee","stroke-width":"1"}));svg.appendChild(svgEl("text",{x:L-9,y:yy+4,"text-anchor":"end",fill:"#64748b","font-size":"11"},fmt(mx-(mx-mn)*i/4)));}
+ const points=data.map((r,i)=>[x(i),y(r.value)]);
+ svg.appendChild(svgEl("polyline",{points:points.map(p=>p.join(",")).join(" "),fill:"none",stroke:"#245c94","stroke-width":"2.5","stroke-linecap":"round","stroke-linejoin":"round"}));
+ if(data.length<=80)points.forEach((p,i)=>{const dot=svgEl("circle",{cx:p[0],cy:p[1],r:data.length>25?2:3.2,fill:"#245c94"});dot.appendChild(svgEl("title",{},data[i].time+" · "+fmt(data[i].value)+" "+(d.unit||"")));svg.appendChild(dot);});
+ const jumps=Math.min(5,Math.max(1,data.length-1));
+ const indexes=[...new Set(Array.from({length:jumps+1},(_,i)=>Math.round((data.length-1)*i/jumps)))];
+ for(const i of indexes){svg.appendChild(svgEl("text",{x:x(i),y:211,"text-anchor":"middle",fill:"#64748b","font-size":"11"},data[i].time));}
+ $("chart-note").textContent=data.length+"개 관측치 · "+d.label+" · "+(d.unit||"원자료 단위");
+}
 function render(rows,d,label){
  records=rows.slice().sort((a,b)=>String(b.time).localeCompare(String(a.time)));sourceName=label;unitName=d.unit||"";
- $("tbody").replaceChildren();
- const frag=document.createDocumentFragment();
+ const body=$("tbody");body.replaceChildren();const frag=document.createDocumentFragment();
  for(const r of records){
-  const tr=document.createElement("tr");
-  for(const [k,cls] of [["time",""],["value","num"],["unit",""],["source",""]]){
-   const td=document.createElement("td");td.className=cls;td.textContent=k==="value"?fmt(r.value):(k==="unit"?d.unit:(k==="source"?label:r.time));tr.appendChild(td);
-  }frag.appendChild(tr);
- }
- $("tbody").appendChild(frag);$("empty").hidden=records.length>0;$("table").hidden=!records.length;
- if(!records.length)$("empty").textContent="해당 기간의 수록 자료가 없습니다. 기간을 변경해 다시 조회하세요.";
- $("download").disabled=!records.length;$("count").textContent=records.length.toLocaleString("ko-KR")+"개 시점";
- $("unit").textContent=d.unit?"단위: "+d.unit:"";$("updated").textContent="열람: "+new Date().toLocaleString("ko-KR");
- status(records.length?"조회 성공":"조회 결과 없음");
+ const tr=document.createElement("tr");
+ for(const key of ["time","value","unit","source"]){
+ const td=document.createElement("td");if(key==="value")td.className="num";
+ td.textContent=key==="time"?r.time:key==="value"?fmt(r.value):key==="unit"?(d.unit||""):label;
+ tr.appendChild(td);
+ }frag.appendChild(tr);
+ }body.appendChild(frag);
+ $("empty").hidden=records.length>0;$("table").hidden=!records.length;
+ if(!records.length)$("empty").textContent="해당 기간에 관측치가 없습니다. 기간을 변경하거나 다른 출처를 선택하세요.";
+ $("download").disabled=!records.length;$("count").textContent=records.length+"개 관측치";
+ $("unit").textContent="단위: "+(d.unit||"기관 기준");$("updated").textContent="조회: "+new Date().toLocaleString("ko-KR");
+ status(records.length?"조회 성공":"관측치 없음");
+ renderChart(records,d);
 }
 async function load(){
- const d=D[selected],frequency=$("freq").value;records=[];$("download").disabled=true;
- $("table").hidden=true;$("empty").hidden=false;$("empty").textContent="공식 데이터 응답을 확인하고 있습니다…";status("조회 중");
+ const seq=++requestNum,d=C[concept].sources[sourceIndex],frequency=$("freq").value;
+ records=[];$("download").disabled=true;$("table").hidden=true;$("empty").hidden=false;
+ $("empty").textContent="원본 통계 API에서 조회 중입니다…";status("조회 중");
+ $("chart").hidden=true;$("chart-empty").hidden=false;$("chart-empty").textContent="조회 중…";
  const sy=Number($("start").value),ey=Number($("end").value);
- if(!Number.isInteger(sy)||!Number.isInteger(ey)||sy>ey||sy<1900||ey>2100){$("empty").textContent="올바른 조회 기간을 선택하세요.";status("기간 오류");return}
- if(d.kind==="external"){$("empty").textContent="현재 데이터 출처의 공개 표 조회 API가 연결되지 않았습니다. 공식 원본에서 기간을 설정해 조회하세요.";status("외부 API 미연결");return}
+ if(!Number.isInteger(sy)||!Number.isInteger(ey)||sy>ey||sy<1900||ey>2100){status("기간 오류");$("empty").textContent="올바른 연도를 입력하세요.";return;}
+ if(d.kind==="external"){status("API 연결 전");$("empty").textContent="이 기관의 정확한 시계열 API는 아직 연결되지 않았습니다. ‘해당 출처 원본’에서 통계표를 조회하세요."; $("chart-empty").textContent="연동되지 않은 출처의 통계를 다른 기관 값으로 대체하지 않습니다.";return;}
  try{
-  let rows=[],label="";
-  if(d.kind==="wb"){
-   const country=d.country||"KOR";
-   const url="https://api.worldbank.org/v2/country/"+encodeURIComponent(country)+"/indicator/"+encodeURIComponent(d.code)+"?format=json&per_page=1000&date="+sy+":"+ey;
-   const res=await fetch(url,{cache:"no-store"});
-   if(!res.ok)throw Error("세계은행 API HTTP "+res.status);
-   const data=await res.json();
-   if(!Array.isArray(data)||!Array.isArray(data[1]))throw Error(data?.message?.[0]?.value||"세계은행 API 응답 형식이 올바르지 않습니다.");
-   rows=data[1].filter(x=>x&&x.value!==null&&Number.isFinite(Number(x.value))).map(x=>({time:x.date,value:Number(x.value)}));
-   label="세계은행 WDI"+(d.country==="WLD"?" · 세계 합계":" · 한국");
-  }else if(d.kind==="ecb"){
-   const freq=frequency;
-   const timeStart=freq==="D"?sy+"-01-01":freq==="M"?sy+"-01":freq==="Q"?sy+"-Q1":String(sy);
-   const timeEnd=freq==="D"?ey+"-12-31":freq==="M"?ey+"-12":freq==="Q"?ey+"-Q4":String(ey);
-   const endpoint=currency=>"https://data-api.ecb.europa.eu/service/data/EXR/"+freq+"."+currency+".EUR.SP00.A?format=csvdata&startPeriod="+encodeURIComponent(timeStart)+"&endPeriod="+encodeURIComponent(timeEnd);
-   const responses=await Promise.all(["KRW","USD"].map(cur=>fetch(endpoint(cur),{cache:"no-store"})));
-   for(const res of responses)if(!res.ok)throw Error("ECB API HTTP "+res.status);
-   const [krw,usd]=await Promise.all(responses.map(async r=>parseEcb(await r.text())));
-   const usdMap=new Map(usd.map(x=>[x.time,x.value]));
-   rows=krw.filter(x=>usdMap.has(x.time)&&usdMap.get(x.time)!==0)
-       .map(x=>({time:x.time,value:x.value/usdMap.get(x.time)}));
-   label="ECB EXR · 원/유로 ÷ 달러/유로 ("+({"A":"연간","Q":"분기","M":"월간","D":"일간"}[freq]+")");
-  }else if(d.kind==="ecos"){
-   const today=new Date();
-   const pad=n=>String(n).padStart(2,"0");
-   const start=sy+"0101";const end=String(ey)+pad(today.getMonth()+1)+pad(today.getDate());
-   const url="https://ecos.bok.or.kr/api/StatisticSearch/sample/json/kr/1/10/"+d.code+"/"+d.freq+"/"+start+"/"+end+"/"+d.item;
-   const res=await fetch(url,{cache:"no-store"});
-   if(!res.ok)throw Error("ECOS API HTTP "+res.status);
-   const data=await res.json();
-   const err=data.RESULT?.MESSAGE||data.StatisticSearch?.RESULT?.MESSAGE;
-   if(err)throw Error(err);
-   rows=(data.StatisticSearch?.row||[]).filter(x=>x.DATA_VALUE!==null&&!Number.isNaN(Number(x.DATA_VALUE))).map(x=>({time:x.TIME,value:Number(x.DATA_VALUE)}));
-   label="한국은행 ECOS · 데모 최대 10건";
-  }
-  render(rows,d,label);
- }catch(e){
-  status("조회 실패");
-  const reason= e instanceof TypeError?"네트워크 또는 브라우저 CORS 정책으로 데이터 요청이 차단되었을 수 있습니다.":String(e?.message||e);
-  $("empty").textContent="시계열을 가져오지 못했습니다. "+reason+" 공식 원본 열기로 직접 확인할 수 있습니다.";
+ let rows=[],label=d.label;
+ if(d.kind==="wb"){
+ const url="https://api.worldbank.org/v2/country/KOR/indicator/"+encodeURIComponent(d.code)+"?format=json&per_page=1000&date="+sy+":"+ey;
+ const res=await fetch(url,{cache:"no-store"});if(!res.ok)throw Error("세계은행 API HTTP "+res.status);
+ const body=await res.json();if(!Array.isArray(body)||!Array.isArray(body[1]))throw Error("세계은행 API 응답 형식 오류");
+ rows=body[1].filter(x=>x&&x.value!==null&&Number.isFinite(Number(x.value))).map(x=>({time:x.date,value:Number(x.value)}));
+ label=d.label+" · World Development Indicators";
+ }else if(d.kind==="ecb"){
+ const fmtPeriod=(year,end)=>frequency==="D"?year+(end?"-12-31":"-01-01"):frequency==="M"?year+(end?"-12":"-01"):frequency==="Q"?year+(end?"-Q4":"-Q1"):String(year);
+ const endpoint=cur=>"https://data-api.ecb.europa.eu/service/data/EXR/"+frequency+"."+cur+".EUR.SP00.A?format=csvdata&startPeriod="+encodeURIComponent(fmtPeriod(sy,false))+"&endPeriod="+encodeURIComponent(fmtPeriod(ey,true));
+ const response=await Promise.all(["KRW","USD"].map(c=>fetch(endpoint(c),{cache:"no-store"})));
+ for(const res of response)if(!res.ok)throw Error("ECB HTTP "+res.status);
+ const [krw,usd]=await Promise.all(response.map(async r=>parseEcb(await r.text())));
+ const map=new Map(usd.map(x=>[x.time,x.value]));
+ rows=krw.filter(x=>map.has(x.time)&&map.get(x.time)!==0).map(x=>({time:x.time,value:x.value/map.get(x.time)}));
+ label="ECB 환율 교차계산 ("+frequency+")";
+ }else if(d.kind==="ecos"){
+ const p=n=>String(n).padStart(2,"0");
+ const dateStart=frequency==="M"?sy+"01":frequency==="D"?sy+"0101":String(sy);
+ const dateEnd=frequency==="M"?ey+"12":frequency==="D"?ey+"1231":String(ey);
+ const url="https://ecos.bok.or.kr/api/StatisticSearch/sample/json/kr/1/10/"+d.code+"/"+frequency+"/"+dateStart+"/"+dateEnd+"/"+d.item;
+ const res=await fetch(url,{cache:"no-store"});if(!res.ok)throw Error("ECOS HTTP "+res.status);
+ const json=await res.json();if(json.RESULT?.MESSAGE)throw Error(json.RESULT.MESSAGE);
+ if(json.StatisticSearch?.RESULT?.MESSAGE)throw Error(json.StatisticSearch.RESULT.MESSAGE);
+ rows=(json.StatisticSearch?.row||[]).filter(x=>x.DATA_VALUE!==null&&Number.isFinite(Number(x.DATA_VALUE))).map(x=>({time:x.TIME,value:Number(x.DATA_VALUE)}));
+ label="한국은행 ECOS 샘플 · 최대 10건";
  }
+ if(seq!==requestNum)return;render(rows,d,label);
+ }catch(err){if(seq!==requestNum)return;status("조회 실패");$("empty").textContent="실제 API 응답을 받지 못했습니다. "+(err instanceof TypeError?"네트워크 또는 CORS 정책으로 브라우저 조회가 차단되었을 수 있습니다.":String(err.message||err));$("chart-empty").textContent="표시할 실측값이 없습니다. 공식 원본에서 확인하세요.";}
 }
-
-function splitCsvLine(line){
- const out=[];let value="",quoted=false;
- for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'){if(quoted&&line[i+1]==='"'){value+='"';i++;}else quoted=!quoted;}else if(c===","&&!quoted){out.push(value);value="";}else value+=c;}
- out.push(value);return out;
-}
-function parseEcb(csv){
- const lines=csv.trim().split(/\r?\n/);if(!lines.length)return [];
- const header=splitCsvLine(lines[0]);const ti=header.indexOf("TIME_PERIOD"),vi=header.indexOf("OBS_VALUE");
- if(ti<0||vi<0)throw Error("ECB CSV에서 TIME_PERIOD 또는 OBS_VALUE 열을 찾을 수 없습니다.");
- const values=[];
- for(const line of lines.slice(1)){if(!line.trim())continue;const cells=splitCsvLine(line);const val=Number(cells[vi]);if(cells[vi]&&Number.isFinite(val))values.push({time:cells[ti],value:val});}
- return values;
-}
+function splitCsvLine(line){const out=[];let v="",q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'){if(q&&line[i+1]==='"'){v+='"';i++;}else q=!q;}else if(c===","&&!q){out.push(v);v="";}else v+=c;}out.push(v);return out;}
+function parseEcb(csv){const lines=csv.trim().split(/\r?\n/);const fields=splitCsvLine(lines[0]||"");const ti=fields.indexOf("TIME_PERIOD"),vi=fields.indexOf("OBS_VALUE");if(ti<0||vi<0)throw Error("ECB CSV 형식 오류");return lines.slice(1).filter(x=>x.trim()).map(x=>splitCsvLine(x)).filter(c=>c[vi]&&Number.isFinite(Number(c[vi]))).map(c=>({time:c[ti],value:Number(c[vi])}));}
 function exportCsv(){
  if(!records.length)return;
- const header=["기간","수치","단위","출처"].join(",");
  const esc=s=>'"'+String(s).replaceAll('"','""')+'"';
- const lines=records.map(r=>[r.time,r.value,unitName,sourceName].map(esc).join(","));
- const blob=new Blob(["\uFEFF",header+"\r\n"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"});
- const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download="KH_"+selected+"_"+new Date().toISOString().slice(0,10)+".csv";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(u);
+ const lines=[["기간","수치","단위","출처"].map(esc).join(","),...records.map(r=>[r.time,r.value,unitName,sourceName].map(esc).join(","))];
+ const blob=new Blob(["\uFEFF",lines.join("\r\n")],{type:"text/csv;charset=utf-8"});
+ const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="KH_"+concept+"_"+new Date().toISOString().slice(0,10)+".csv";a.click();URL.revokeObjectURL(url);
 }
 init();
 </script>
