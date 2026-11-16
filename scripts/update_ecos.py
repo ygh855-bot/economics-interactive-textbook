@@ -20,8 +20,8 @@ def span(s):
  if not FULL:
   if cyc=="M":start=(TODAY-timedelta(days=270)).strftime("%Y%m")
   elif cyc=="A":start=str(TODAY.year-9)
-  elif cyc=="Q":start=str(TODAY.year-3)+"Q1"
-  elif code=="722Y001":start=(TODAY-timedelta(days=17)).strftime("%Y%m%d")
+  elif cyc=="Q":start=str(TODAY.year-2)+"Q3"
+  elif code=="722Y001":start=(TODAY-timedelta(days=12)).strftime("%Y%m%d")
   else:start=(TODAY-timedelta(days=17)).strftime("%Y%m%d")
  end=(str(TODAY.year)+"Q4") if cyc=="Q" else (str(TODAY.year) if cyc=="A" else TODAY.strftime("%Y%m" if cyc=="M" else "%Y%m%d"))
  return start,end
