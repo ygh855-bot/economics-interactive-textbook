@@ -87,9 +87,13 @@ function init(){
   nav.appendChild(section);
  }
  $("load").onclick=load;$("download").onclick=exportCsv;$("freq").addEventListener("change",load);
- document.body.classList.toggle("embedded",new URLSearchParams(location.search).get("embed")==="1"||window.self!==window.top);
+ document.body.classList.add("embedded");
  const initKey=new URLSearchParams(location.search).get("series");
- choose(Object.prototype.hasOwnProperty.call(D,initKey)?initKey:"wb-gdp",false);
+ if(!Object.prototype.hasOwnProperty.call(D,initKey)){
+  location.replace("https://app.notion.com/p/41ad6a801a748120b1e9d9e5fd6af0c9");
+  return;
+ }
+ choose(initKey,false);
 }
 function choose(id,push){
  selected=id;const d=D[id];records=[];
