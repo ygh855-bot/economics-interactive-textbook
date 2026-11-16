@@ -1,6 +1,6 @@
 {
   "provider": "한국은행 ECOS",
-  "generated_at": "2026-11-16T11:01:40+09:00",
+  "generated_at": "2026-11-16T11:09:50+09:00",
   "mode": "sample",
   "indicators": {
     "cpi": {
@@ -51,7 +51,7 @@
           "value": 120.73
         }
       ],
-      "updated_at": "2026-11-16T11:01:40+09:00"
+      "updated_at": "2026-11-16T11:09:50+09:00"
     },
     "fx": {
       "table": "731Y001",
@@ -105,65 +105,117 @@
           "value": 1336.7
         }
       ],
-      "updated_at": "2026-11-16T11:01:40+09:00"
+      "updated_at": "2026-11-16T11:09:50+09:00"
     },
     "rate": {
       "table": "722Y001",
       "item": "0101000",
       "cycle": "D",
-      "start": "20241116",
+      "start": "20261030",
       "end": "20261116",
       "unit": "연%",
       "coverage": "sample_max_10",
       "returned_count": 10,
-      "reported_total": 728,
+      "reported_total": 15,
       "observations": [
         {
-          "time": "20241116",
-          "value": 3.25
+          "time": "20261030",
+          "value": 3.0
         },
         {
-          "time": "20241117",
-          "value": 3.25
+          "time": "20261031",
+          "value": 3.0
         },
         {
-          "time": "20241118",
-          "value": 3.25
+          "time": "20261101",
+          "value": 3.0
         },
         {
-          "time": "20241119",
-          "value": 3.25
+          "time": "20261102",
+          "value": 3.0
         },
         {
-          "time": "20241120",
-          "value": 3.25
+          "time": "20261103",
+          "value": 3.0
         },
         {
-          "time": "20241121",
-          "value": 3.25
+          "time": "20261104",
+          "value": 3.0
         },
         {
-          "time": "20241122",
-          "value": 3.25
+          "time": "20261105",
+          "value": 3.0
         },
         {
-          "time": "20241123",
-          "value": 3.25
+          "time": "20261106",
+          "value": 3.0
         },
         {
-          "time": "20241124",
-          "value": 3.25
+          "time": "20261107",
+          "value": 3.0
         },
         {
-          "time": "20241125",
-          "value": 3.25
+          "time": "20261108",
+          "value": 3.0
         }
       ],
-      "updated_at": "2026-11-16T11:01:40+09:00"
+      "updated_at": "2026-11-16T11:09:50+09:00"
+    },
+    "gdp": {
+      "table": "200Y102",
+      "item": "10111",
+      "cycle": "Q",
+      "start": "2023Q1",
+      "end": "2026Q4",
+      "unit": "%",
+      "coverage": "sample_max_10",
+      "returned_count": 10,
+      "reported_total": 15,
+      "observations": [
+        {
+          "time": "2023Q1",
+          "value": 0.2
+        },
+        {
+          "time": "2023Q2",
+          "value": 0.7
+        },
+        {
+          "time": "2023Q3",
+          "value": 1.0
+        },
+        {
+          "time": "2023Q4",
+          "value": 0.7
+        },
+        {
+          "time": "2024Q1",
+          "value": 1.0
+        },
+        {
+          "time": "2024Q2",
+          "value": -0.2
+        },
+        {
+          "time": "2024Q3",
+          "value": 0.1
+        },
+        {
+          "time": "2024Q4",
+          "value": 0.2
+        },
+        {
+          "time": "2025Q1",
+          "value": -0.2
+        },
+        {
+          "time": "2025Q2",
+          "value": 0.6
+        }
+      ],
+      "updated_at": "2026-11-16T11:09:50+09:00"
     }
   },
-  "errors": {
-    "gdp": "ECOS INFO-200"
-  },
+  "errors": {},
   "notice": "sample은 최대 10건. 정식 키 설정 시 전체 조회."
 }
